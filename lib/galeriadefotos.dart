@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'captura_pie_screen.dart';
 
 class GaleriaFotosScreen extends StatelessWidget {
   final String uid;
@@ -10,6 +11,117 @@ class GaleriaFotosScreen extends StatelessWidget {
     required this.uid,
     required this.esDoctor,
   });
+
+  void mostrarSelectorPie(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¿Qué pie vas a fotografiar?',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E6B),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Selecciona antes de tomar la foto',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CapturaPieScreen(
+                              pieSide: FootSide.left,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF6A93BE)),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Pie izquierdo',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6A93BE),
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CapturaPieScreen(
+                              pieSide: FootSide.right,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6A93BE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF6A93BE)),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Pie derecho',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _nombreMes(int mes) {
+    const meses = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return meses[mes - 1];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +146,7 @@ class GaleriaFotosScreen extends StatelessWidget {
           if (!esDoctor)
             IconButton(
               icon: const Icon(Icons.add_a_photo_outlined, color: Color(0xFF6A93BE)),
-              onPressed: () {
-                // aquí va el código de tu compañera para subir fotos
-              },
+              onPressed: () => mostrarSelectorPie(context),
             ),
         ],
       ),
@@ -83,152 +193,150 @@ class GaleriaFotosScreen extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: fotos.length,
-            itemBuilder: (context, index) {
-              final data = fotos[index].data() as Map<String, dynamic>;
-              final docId = fotos[index].id;
-              final fecha = data['fecha'] != null
-                  ? (data['fecha'] as dynamic).toDate()
-                  : DateTime.now();
+          final Map<String, List<QueryDocumentSnapshot>> agrupadas = {};
+          for (var doc in fotos) {
+            final data = doc.data() as Map<String, dynamic>;
+            final fecha = data['fecha'] != null
+                ? (data['fecha'] as dynamic).toDate()
+                : DateTime.now();
+            final clave = '${_nombreMes(fecha.month)} ${fecha.year}';
+            agrupadas.putIfAbsent(clave, () => []).add(doc);
+          }
 
-              return _TarjetaFoto(
-                data: data,
-                docId: docId,
-                uid: uid,
-                fecha: fecha,
-                esDoctor: esDoctor,
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: agrupadas.entries.map((entry) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 12),
+                    child: Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E6B),
+                      ),
+                    ),
+                  ),
+                  ...entry.value.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final fecha = data['fecha'] != null
+                        ? (data['fecha'] as dynamic).toDate()
+                        : DateTime.now();
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetalleFotoScreen(
+                              data: data,
+                              docId: doc.id,
+                              uid: uid,
+                              esDoctor: esDoctor,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF3FB),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${fecha.day}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF6A93BE),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    data['pie'] != null
+                                        ? data['pie'] == 'izquierdo'
+                                            ? 'Pie izquierdo'
+                                            : 'Pie derecho'
+                                        : 'Sin especificar',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF2C3E6B),
+                                    ),
+                                  ),
+                                  if (data['observaciones'] != null &&
+                                      data['observaciones'].toString().isNotEmpty)
+                                    const Text(
+                                      'Con observaciones del doctor',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (data['imagenBase64'] != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(
+                                  Uri.parse(data['imagenBase64']).data!.contentAsBytes(),
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF3FB),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.image_outlined,
+                                  color: Color(0xFF6A93BE),
+                                  size: 22,
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                ],
               );
-            },
+            }).toList(),
           );
         },
-      ),
-    );
-  }
-}
-
-class _TarjetaFoto extends StatelessWidget {
-  final Map<String, dynamic> data;
-  final String docId;
-  final String uid;
-  final DateTime fecha;
-  final bool esDoctor;
-
-  const _TarjetaFoto({
-    required this.data,
-    required this.docId,
-    required this.uid,
-    required this.fecha,
-    required this.esDoctor,
-  });
-
-  String get fechaFormateada {
-    return '${fecha.day}/${fecha.month}/${fecha.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetalleFotoScreen(
-              data: data,
-              docId: docId,
-              uid: uid,
-              esDoctor: esDoctor,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-
-            Container(
-              height: 180,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEF3FB),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-              ),
-              child: data['imagenBase64'] != null
-                  ? ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(16),
-                      ),
-                      child: Image.memory(
-                        Uri.parse(data['imagenBase64']).data!.contentAsBytes(),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
-                    )
-                  : const Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        size: 48,
-                        color: Color(0xFF6A93BE),
-                      ),
-                    ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        fechaFormateada,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (data['observaciones'] != null &&
-                      data['observaciones'].toString().isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEEF3FB),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text(
-                        'Con observaciones',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6A93BE),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -301,6 +409,17 @@ class _DetalleFotoScreenState extends State<DetalleFotoScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        title: widget.data['pie'] != null
+            ? Text(
+                widget.data['pie'] == 'izquierdo'
+                    ? 'Pie izquierdo'
+                    : 'Pie derecho',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                ),
+              )
+            : null,
       ),
       body: Column(
         children: [
