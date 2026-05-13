@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'main.dart';
 import 'galeriadefotos.dart';
+import 'niveles_screen.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key});
@@ -24,12 +25,10 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   Future<void> cargarDatos() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-
     final doc = await FirebaseFirestore.instance
         .collection('usuarios')
         .doc(uid)
         .get();
-
     if (doc.exists) {
       setState(() {
         datos = doc.data();
@@ -71,50 +70,17 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       );
     }
 
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.photo_library_outlined, color: Colors.white),
-            onPressed: () {
-              final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GaleriaFotosScreen(
-                    uid: uid,
-                    esDoctor: false,
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditarPerfilScreen(datos: datos!),
-                ),
-              );
-              cargarDatos();
-            },
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
 
             Container(
-              height: 240,
+              height: 260,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF6A93BE), Color(0xFF2C3E6B)],
@@ -122,227 +88,121 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      iniciales,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E6B),
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    datos?['nombre'] ?? 'Sin nombre',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF4CAF50),
-                          shape: BoxShape.circle,
+                      alignment: Alignment.center,
+                      child: Text(
+                        iniciales,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3E6B),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Paciente activo',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      datos?['nombre'] ?? 'Sin nombre',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF4CAF50),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Paciente activo',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  _Tarjeta(
-                    titulo: 'Datos personales',
-                    child: Column(
-                      children: [
-                        _InfoFila(
-                          icono: Icons.cake_rounded,
-                          etiqueta: 'Fecha de nacimiento',
-                          valor: datos?['fechaNacimiento'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.monitor_weight_rounded,
-                          etiqueta: 'Peso',
-                          valor: datos?['peso'] != null
-                              ? '${datos!['peso']} kg'
-                              : 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.height_rounded,
-                          etiqueta: 'Altura',
-                          valor: datos?['altura'] != null
-                              ? '${datos!['altura']} cm'
-                              : 'Sin registrar',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _Tarjeta(
-                    titulo: 'Historial médico',
-                    child: Column(
-                      children: [
-                        _InfoFila(
-                          icono: Icons.medical_services_rounded,
-                          etiqueta: 'Diagnóstico principal',
-                          valor: datos?['diagnostico'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.history_rounded,
-                          etiqueta: 'Duración',
-                          valor: datos?['duracion'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.warning_amber_rounded,
-                          etiqueta: 'Comorbilidades',
-                          valor: datos?['comorbilidades'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.bloodtype_rounded,
-                          etiqueta: 'Último HbA1c',
-                          valor: datos?['hba1c'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.healing_rounded,
-                          etiqueta: 'Heridas',
-                          valor: datos?['heridas'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.medication_rounded,
-                          etiqueta: 'Alergias',
-                          valor: datos?['alergias'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.smoking_rooms_rounded,
-                          etiqueta: 'Tabaquismo',
-                          valor: datos?['tabaquismo'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.favorite_rounded,
-                          etiqueta: 'Dislipidemias',
-                          valor: datos?['dislipidemias'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.directions_run_rounded,
-                          etiqueta: 'Actividad física',
-                          valor: datos?['actividadFisica'] ?? 'Sin registrar',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _Tarjeta(
-                    titulo: 'Contacto',
-                    child: Column(
-                      children: [
-                        _InfoFila(
-                          icono: Icons.email_outlined,
-                          etiqueta: 'Correo',
-                          valor: datos?['correo'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.phone_android_rounded,
-                          etiqueta: 'Teléfono',
-                          valor: datos?['telefono'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.home_rounded,
-                          etiqueta: 'Dirección',
-                          valor: datos?['direccion'] ?? 'Sin registrar',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5F5),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFFED7D7)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.contact_emergency_rounded,
-                          color: Colors.redAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'En caso de emergencia',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.redAccent,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                datos?['contactoEmergenciaNombre'] ?? 'Sin registrar',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              if (datos?['contactoEmergenciaTel'] != null &&
-                                  datos!['contactoEmergenciaTel'].isNotEmpty)
-                                Text(
-                                  datos!['contactoEmergenciaTel'],
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                            ],
+                  _BotonMenu(
+                    icono: Icons.person_outline,
+                    titulo: 'Mi información general',
+                    subtitulo: 'Datos personales e historial médico',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => InformacionGeneralScreen(
+                            datos: datos!,
+                            onActualizar: cargarDatos,
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 14),
+
+                  _BotonMenu(
+                    icono: Icons.monitor_heart_outlined,
+                    titulo: 'Mis niveles',
+                    subtitulo: 'Glucosa y presión arterial',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => NivelesScreen(uid: uid),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _BotonMenu(
+                    icono: Icons.photo_library_outlined,
+                    titulo: 'Mis fotos del pie',
+                    subtitulo: 'Registro fotográfico y observaciones',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GaleriaFotosScreen(
+                            uid: uid,
+                            esDoctor: false,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 30),
 
                   SizedBox(
                     width: double.infinity,
@@ -367,6 +227,289 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BotonMenu extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String subtitulo;
+  final VoidCallback onTap;
+
+  const _BotonMenu({
+    required this.icono,
+    required this.titulo,
+    required this.subtitulo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3FB),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icono, color: const Color(0xFF6A93BE), size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E6B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitulo,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class InformacionGeneralScreen extends StatelessWidget {
+  final Map<String, dynamic> datos;
+  final VoidCallback onActualizar;
+
+  const InformacionGeneralScreen({
+    super.key,
+    required this.datos,
+    required this.onActualizar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF6A93BE)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Mi información',
+          style: TextStyle(
+            color: Color(0xFF2C3E6B),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: Color(0xFF6A93BE)),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditarPerfilScreen(datos: datos),
+                ),
+              );
+              onActualizar();
+              if (context.mounted) Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+
+            _Tarjeta(
+              titulo: 'Datos personales',
+              child: Column(
+                children: [
+                  _InfoFila(
+                    icono: Icons.cake_rounded,
+                    etiqueta: 'Fecha de nacimiento',
+                    valor: datos['fechaNacimiento'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.monitor_weight_rounded,
+                    etiqueta: 'Peso',
+                    valor: datos['peso'] != null
+                        ? '${datos['peso']} kg'
+                        : 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.height_rounded,
+                    etiqueta: 'Altura',
+                    valor: datos['altura'] != null
+                        ? '${datos['altura']} cm'
+                        : 'Sin registrar',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            _Tarjeta(
+              titulo: 'Historial médico',
+              child: Column(
+                children: [
+                  _InfoFila(
+                    icono: Icons.medical_services_rounded,
+                    etiqueta: 'Diagnóstico principal',
+                    valor: datos['diagnostico'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.history_rounded,
+                    etiqueta: 'Duración',
+                    valor: datos['duracion'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.warning_amber_rounded,
+                    etiqueta: 'Comorbilidades',
+                    valor: datos['comorbilidades'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.bloodtype_rounded,
+                    etiqueta: 'Último HbA1c',
+                    valor: datos['hba1c'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.healing_rounded,
+                    etiqueta: 'Heridas',
+                    valor: datos['heridas'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.medication_rounded,
+                    etiqueta: 'Alergias',
+                    valor: datos['alergias'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.smoking_rooms_rounded,
+                    etiqueta: 'Tabaquismo',
+                    valor: datos['tabaquismo'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.favorite_rounded,
+                    etiqueta: 'Dislipidemias',
+                    valor: datos['dislipidemias'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.directions_run_rounded,
+                    etiqueta: 'Actividad física',
+                    valor: datos['actividadFisica'] ?? 'Sin registrar',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            _Tarjeta(
+              titulo: 'Contacto',
+              child: Column(
+                children: [
+                  _InfoFila(
+                    icono: Icons.email_outlined,
+                    etiqueta: 'Correo',
+                    valor: datos['correo'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.phone_android_rounded,
+                    etiqueta: 'Teléfono',
+                    valor: datos['telefono'] ?? 'Sin registrar',
+                  ),
+                  _InfoFila(
+                    icono: Icons.home_rounded,
+                    etiqueta: 'Dirección',
+                    valor: datos['direccion'] ?? 'Sin registrar',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF5F5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFED7D7)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.contact_emergency_rounded,
+                    color: Colors.redAccent,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'En caso de emergencia',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          datos['contactoEmergenciaNombre'] ?? 'Sin registrar',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        if (datos['contactoEmergenciaTel'] != null &&
+                            datos['contactoEmergenciaTel'].isNotEmpty)
+                          Text(
+                            datos['contactoEmergenciaTel'],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -410,14 +553,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
 
   Future<void> guardar() async {
     setState(() => cargando = true);
-
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .update({
+    await FirebaseFirestore.instance.collection('usuarios').doc(uid).update({
       'nombre': nombreController.text.trim(),
       'telefono': telefonoController.text.trim(),
       'direccion': direccionController.text.trim(),
@@ -427,7 +565,6 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       'contactoEmergenciaNombre': contactoNombreController.text.trim(),
       'contactoEmergenciaTel': contactoTelController.text.trim(),
     });
-
     if (mounted) Navigator.pop(context);
     setState(() => cargando = false);
   }
@@ -476,14 +613,12 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
 
             _seccion('Información personal', azulOscuro),
             const SizedBox(height: 12),
-
             _Campo(label: 'Nombre completo', icono: Icons.person_outline, controller: nombreController),
             const SizedBox(height: 12),
             _Campo(label: 'Teléfono', icono: Icons.phone_outlined, controller: telefonoController, teclado: TextInputType.phone),
             const SizedBox(height: 12),
             _Campo(label: 'Dirección', icono: Icons.home_outlined, controller: direccionController),
             const SizedBox(height: 12),
-
             GestureDetector(
               onTap: seleccionarFecha,
               child: AbsorbPointer(
@@ -494,9 +629,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
@@ -518,12 +651,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             _seccion('Contacto de emergencia', azulOscuro),
             const SizedBox(height: 12),
-
             _Campo(
               label: 'Nombre y parentesco (ej. María, mamá)',
               icono: Icons.contact_emergency_outlined,
@@ -536,9 +666,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
               controller: contactoTelController,
               teclado: TextInputType.phone,
             ),
-
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -558,7 +686,6 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                       ),
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
@@ -569,11 +696,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
   Widget _seccion(String titulo, Color color) {
     return Text(
       titulo,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: color,
-        fontSize: 15,
-      ),
+      style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 15),
     );
   }
 }
@@ -599,9 +722,7 @@ class _Campo extends StatelessWidget {
       decoration: InputDecoration(
         hintText: label,
         prefixIcon: Icon(icono, color: const Color(0xFF6A93BE)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -673,10 +794,7 @@ class _InfoFila extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  etiqueta,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                Text(etiqueta, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(
                   valor,

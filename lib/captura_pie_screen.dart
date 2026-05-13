@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 
 enum FootSide { left, right }
@@ -179,16 +181,20 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
       );
     }
 
+    final screenH = MediaQuery.of(context).size.height;
+    final screenW = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Stack(
         children: [
           SizedBox.expand(child: CameraPreview(_controller!)),
 
+          // Imagen del pie con puntos clínicos de tu amiga
           Positioned(
-            top: 100,
-            bottom: 120,
-            left: -80,
-            right: -80,
+            top: screenH * 0.15,
+            bottom: screenH * 0.18,
+            left: screenW * 0.25,
+            right: screenW * 0.25,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -196,7 +202,7 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
                   colorFilter: ColorFilter.mode(
                     pieDetectado
                         ? Colors.green.withValues(alpha: 0.35)
-                        : Colors.blue.withValues(alpha: 0.25),
+                        : Colors.blue.withValues(alpha: 0.20),
                     BlendMode.srcATop,
                   ),
                   child: Image.asset(
@@ -215,6 +221,10 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
                   fit: BoxFit.contain,
                   color: pieDetectado ? Colors.green : Colors.white,
                   colorBlendMode: BlendMode.modulate,
+                ),
+                CustomPaint(
+                  size: Size.infinite,
+                  painter: PuntosCiclicosPainter(widget.pieSide),
                 ),
               ],
             ),
@@ -239,11 +249,7 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
             left: 12,
             child: SafeArea(
               child: IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -303,6 +309,155 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
   }
 }
 
+// Painter de tu amiga con puntos clínicos y zonas anatómicas
+class PuntosCiclicosPainter extends CustomPainter {
+  final FootSide footSide;
+  PuntosCiclicosPainter(this.footSide);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final paintLinea = Paint()
+      ..color = Colors.white.withValues(alpha: 0.6)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final paintVertical = Paint()
+      ..color = Colors.white.withValues(alpha: 0.45)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(
+      Offset(w * 0.50, h * 0.10),
+      Offset(w * 0.50, h * 0.92),
+      paintVertical,
+    );
+
+    final zonas = [
+      {'y': 0.18, 'nombre': 'Dedos'},
+      {'y': 0.35, 'nombre': 'Metatarso'},
+      {'y': 0.58, 'nombre': 'Arco plantar'},
+      {'y': 0.78, 'nombre': 'Talón'},
+    ];
+
+    for (final zona in zonas) {
+      final y = (zona['y'] as double) * h;
+      final nombre = zona['nombre'] as String;
+
+      canvas.drawLine(Offset(w * 0.15, y), Offset(w * 0.85, y), paintLinea);
+
+      final tp = TextPainter(
+        text: TextSpan(
+          text: nombre,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      tp.layout();
+
+      if (footSide == FootSide.left) {
+        tp.paint(canvas, Offset(w * 0.15, y - 12));
+      } else {
+        tp.paint(canvas, Offset(w * 0.85 - tp.width, y - 12));
+      }
+    }
+
+    final puntos = footSide == FootSide.left
+        ? [
+            [0.62, 0.14, Colors.red, '1'],
+            [0.38, 0.25, Colors.orange, '2'],
+            [0.65, 0.30, Colors.orange, '3'],
+            [0.50, 0.55, Colors.green, '4'],
+            [0.36, 0.68, Colors.orange, '5'],
+            [0.50, 0.88, Colors.purple, '6'],
+          ]
+        : [
+            [0.38, 0.14, Colors.red, '1'],
+            [0.62, 0.25, Colors.orange, '2'],
+            [0.35, 0.30, Colors.orange, '3'],
+            [0.50, 0.55, Colors.green, '4'],
+            [0.64, 0.68, Colors.orange, '5'],
+            [0.50, 0.88, Colors.purple, '6'],
+          ];
+
+    for (final p in puntos) {
+      final dx = (p[0] as double) * w;
+      final dy = (p[1] as double) * h;
+      final color = p[2] as Color;
+      final label = p[3] as String;
+
+      canvas.drawCircle(
+        Offset(dx, dy),
+        10,
+        Paint()..color = color..style = PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        Offset(dx, dy),
+        10,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+
+      final tp = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      tp.layout();
+      tp.paint(canvas, Offset(dx - tp.width / 2, dy - tp.height / 2));
+    }
+
+    final leyenda = ['🔴 Máximo', '🟠 Alto', '🟢 Rutina', '🟣 Talón'];
+
+    double anchoTotal = 0;
+    final tpTemps = <TextPainter>[];
+    for (final texto in leyenda) {
+      final tpTemp = TextPainter(
+        text: TextSpan(
+          text: texto,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: 8,
+            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      tpTemp.layout();
+      tpTemps.add(tpTemp);
+      anchoTotal += tpTemp.width + 8;
+    }
+
+    double leyendaX = (w - anchoTotal) / 2;
+    final leyendaY = h * 0.96;
+
+    for (final tpL in tpTemps) {
+      tpL.paint(canvas, Offset(leyendaX, leyendaY));
+      leyendaX += tpL.width + 8;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant PuntosCiclicosPainter oldDelegate) {
+    return oldDelegate.footSide != footSide;
+  }
+}
+
 class PreviewFotoScreen extends StatefulWidget {
   final String imagePath;
   final FootSide footSide;
@@ -326,15 +481,24 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
     setState(() => guardando = true);
 
     try {
-      final bytes = await File(widget.imagePath).readAsBytes();
-      final base64 = 'data:image/jpeg;base64,${_bytesToBase64(bytes)}';
+      final bytesComprimidos = await FlutterImageCompress.compressWithFile(
+        widget.imagePath,
+        quality: 40,
+      );
+
+      if (bytesComprimidos == null) {
+        setState(() => guardando = false);
+        return;
+      }
+
+      final base64Str = 'data:image/jpeg;base64,${base64Encode(bytesComprimidos)}';
 
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(widget.uid)
           .collection('fotos')
           .add({
-        'imagenBase64': base64,
+        'imagenBase64': base64Str,
         'fecha': FieldValue.serverTimestamp(),
         'pie': widget.footSide == FootSide.left ? 'izquierdo' : 'derecho',
         'observaciones': '',
@@ -357,21 +521,6 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
       debugPrint('Error al guardar: $e');
       setState(() => guardando = false);
     }
-  }
-
-  String _bytesToBase64(List<int> bytes) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    var result = '';
-    for (var i = 0; i < bytes.length; i += 3) {
-      final b0 = bytes[i];
-      final b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-      final b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-      result += chars[(b0 >> 2) & 0x3F];
-      result += chars[((b0 << 4) | (b1 >> 4)) & 0x3F];
-      result += i + 1 < bytes.length ? chars[((b1 << 2) | (b2 >> 6)) & 0x3F] : '=';
-      result += i + 2 < bytes.length ? chars[b2 & 0x3F] : '=';
-    }
-    return result;
   }
 
   @override
@@ -400,10 +549,7 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
             const SizedBox(height: 12),
             Text(
               footText,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             const Text(

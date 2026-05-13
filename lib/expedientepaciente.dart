@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'galeriadefotos.dart';
+import 'niveles_screen.dart';
 
 class ExpedientePacienteScreen extends StatefulWidget {
   final String uid;
@@ -61,53 +62,13 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.photo_library_outlined, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => GaleriaFotosScreen(
-                    uid: widget.uid,
-                    esDoctor: true,
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.white),
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditarExpedienteScreen(
-                    uid: widget.uid,
-                    datos: datos!,
-                  ),
-                ),
-              );
-              cargarDatos();
-            },
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
 
             Container(
-              height: 240,
+              height: 260,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF6A93BE), Color(0xFF2C3E6B)],
@@ -115,115 +76,163 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      iniciales,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E6B),
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.nombre,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF4CAF50),
-                          shape: BoxShape.circle,
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        iniciales,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3E6B),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Paciente activo',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.nombre,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF4CAF50),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Paciente activo',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  _Tarjeta(
-                    titulo: 'Datos personales',
-                    child: Column(
-                      children: [
-                        _InfoFila(
-                          icono: Icons.cake_rounded,
-                          etiqueta: 'Fecha de nacimiento',
-                          valor: datos?['fechaNacimiento'] ?? 'Sin registrar',
+                  _BotonMenu(
+                    icono: Icons.monitor_heart_outlined,
+                    titulo: 'Niveles del paciente',
+                    subtitulo: 'Glucosa y presión arterial registrados',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => NivelesScreen(
+                            uid: widget.uid,
+                            soloLectura: true,
+                          ),
                         ),
-                        _InfoFila(
-                          icono: Icons.monitor_weight_rounded,
-                          etiqueta: 'Peso',
-                          valor: datos?['peso'] != null
-                              ? '${datos!['peso']} kg'
-                              : 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.height_rounded,
-                          etiqueta: 'Altura',
-                          valor: datos?['altura'] != null
-                              ? '${datos!['altura']} cm'
-                              : 'Sin registrar',
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
-                  _Tarjeta(
-                    titulo: 'Historial médico',
+                  _BotonMenu(
+                    icono: Icons.photo_library_outlined,
+                    titulo: 'Fotos del pie',
+                    subtitulo: 'Registro fotográfico y observaciones',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GaleriaFotosScreen(
+                            uid: widget.uid,
+                            esDoctor: true,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _BotonMenu(
+                    icono: Icons.edit_outlined,
+                    titulo: 'Editar expediente',
+                    subtitulo: 'Historial médico y nivel de riesgo',
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EditarExpedienteScreen(
+                            uid: widget.uid,
+                            datos: datos!,
+                          ),
+                        ),
+                      );
+                      cargarDatos();
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Resumen rápido del paciente
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Text(
+                          'Resumen del paciente',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3E6B),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         _InfoFila(
                           icono: Icons.medical_services_rounded,
-                          etiqueta: 'Diagnóstico principal',
+                          etiqueta: 'Diagnóstico',
                           valor: datos?['diagnostico'] ?? 'Sin registrar',
                         ),
                         _InfoFila(
-                          icono: Icons.history_rounded,
-                          etiqueta: 'Duración',
-                          valor: datos?['duracion'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
                           icono: Icons.warning_amber_rounded,
-                          etiqueta: 'Comorbilidades',
-                          valor: datos?['comorbilidades'] ?? 'Sin registrar',
+                          etiqueta: 'Nivel de riesgo',
+                          valor: _etiquetaRiesgo(datos?['riesgo'] ?? 'estable'),
+                          colorValor: _colorRiesgo(datos?['riesgo'] ?? 'estable'),
                         ),
                         _InfoFila(
                           icono: Icons.bloodtype_rounded,
@@ -235,102 +244,6 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                           etiqueta: 'Heridas',
                           valor: datos?['heridas'] ?? 'Sin registrar',
                         ),
-                        _InfoFila(
-                          icono: Icons.medication_rounded,
-                          etiqueta: 'Alergias',
-                          valor: datos?['alergias'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.smoking_rooms_rounded,
-                          etiqueta: 'Tabaquismo',
-                          valor: datos?['tabaquismo'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.favorite_rounded,
-                          etiqueta: 'Dislipidemias',
-                          valor: datos?['dislipidemias'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.directions_run_rounded,
-                          etiqueta: 'Actividad física',
-                          valor: datos?['actividadFisica'] ?? 'Sin registrar',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _Tarjeta(
-                    titulo: 'Contacto',
-                    child: Column(
-                      children: [
-                        _InfoFila(
-                          icono: Icons.email_outlined,
-                          etiqueta: 'Correo',
-                          valor: datos?['correo'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.phone_android_rounded,
-                          etiqueta: 'Teléfono',
-                          valor: datos?['telefono'] ?? 'Sin registrar',
-                        ),
-                        _InfoFila(
-                          icono: Icons.home_rounded,
-                          etiqueta: 'Dirección',
-                          valor: datos?['direccion'] ?? 'Sin registrar',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5F5),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFFED7D7)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.contact_emergency_rounded,
-                          color: Colors.redAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'En caso de emergencia',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.redAccent,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                datos?['contactoEmergenciaNombre'] ?? 'Sin registrar',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              if (datos?['contactoEmergenciaTel'] != null &&
-                                  datos!['contactoEmergenciaTel'].isNotEmpty)
-                                Text(
-                                  datos!['contactoEmergenciaTel'],
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -339,6 +252,82 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _etiquetaRiesgo(String riesgo) {
+    if (riesgo == 'alto') return 'Alto';
+    if (riesgo == 'moderado') return 'Moderado';
+    return 'Estable';
+  }
+
+  Color _colorRiesgo(String riesgo) {
+    if (riesgo == 'alto') return Colors.redAccent;
+    if (riesgo == 'moderado') return Colors.orange;
+    return Colors.green;
+  }
+}
+
+class _BotonMenu extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String subtitulo;
+  final VoidCallback onTap;
+
+  const _BotonMenu({
+    required this.icono,
+    required this.titulo,
+    required this.subtitulo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3FB),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icono, color: const Color(0xFF6A93BE), size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2C3E6B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitulo,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 22),
           ],
         ),
       ),
@@ -396,7 +385,6 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
 
   Future<void> guardar() async {
     setState(() => cargando = true);
-
     await FirebaseFirestore.instance
         .collection('usuarios')
         .doc(widget.uid)
@@ -412,7 +400,6 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
       'actividadFisica': actividadController.text.trim(),
       'riesgo': riesgo,
     });
-
     if (mounted) Navigator.pop(context);
     setState(() => cargando = false);
   }
@@ -432,12 +419,8 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Expediente del paciente',
-          style: TextStyle(
-            color: azul,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          'Editar expediente',
+          style: TextStyle(color: azul, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: SingleChildScrollView(
@@ -445,79 +428,32 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             _seccion('Diagnóstico y evolución', azulOscuro),
             const SizedBox(height: 12),
-
-            _Campo(
-              label: 'Diagnóstico principal',
-              icono: Icons.medical_services_outlined,
-              controller: diagnosticoController,
-            ),
+            _Campo(label: 'Diagnóstico principal', icono: Icons.medical_services_outlined, controller: diagnosticoController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Tiempo desde el diagnóstico (ej. 5 años)',
-              icono: Icons.history_rounded,
-              controller: duracionController,
-            ),
+            _Campo(label: 'Tiempo desde el diagnóstico (ej. 5 años)', icono: Icons.history_rounded, controller: duracionController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Último HbA1c (ej. 7.4%)',
-              icono: Icons.bloodtype_outlined,
-              controller: hba1cController,
-            ),
-
+            _Campo(label: 'Último HbA1c (ej. 7.4%)', icono: Icons.bloodtype_outlined, controller: hba1cController),
             const SizedBox(height: 24),
-
             _seccion('Condiciones asociadas', azulOscuro),
             const SizedBox(height: 12),
-
-            _Campo(
-              label: 'Comorbilidades',
-              icono: Icons.warning_amber_outlined,
-              controller: comorbilController,
-            ),
+            _Campo(label: 'Comorbilidades', icono: Icons.warning_amber_outlined, controller: comorbilController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Heridas actuales o pasadas',
-              icono: Icons.healing_outlined,
-              controller: heridasController,
-            ),
+            _Campo(label: 'Heridas actuales o pasadas', icono: Icons.healing_outlined, controller: heridasController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Alergias',
-              icono: Icons.medication_outlined,
-              controller: alergiasController,
-            ),
+            _Campo(label: 'Alergias', icono: Icons.medication_outlined, controller: alergiasController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Dislipidemias (colesterol, triglicéridos)',
-              icono: Icons.favorite_outline,
-              controller: dislipidemiasController,
-            ),
-
+            _Campo(label: 'Dislipidemias (colesterol, triglicéridos)', icono: Icons.favorite_outline, controller: dislipidemiasController),
             const SizedBox(height: 24),
-
             _seccion('Estilo de vida', azulOscuro),
             const SizedBox(height: 12),
-
-            _Campo(
-              label: 'Tabaquismo',
-              icono: Icons.smoking_rooms_rounded,
-              controller: tabaquismoController,
-            ),
+            _Campo(label: 'Tabaquismo', icono: Icons.smoking_rooms_rounded, controller: tabaquismoController),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Actividad física',
-              icono: Icons.directions_run_rounded,
-              controller: actividadController,
-            ),
-
+            _Campo(label: 'Actividad física', icono: Icons.directions_run_rounded, controller: actividadController),
             const SizedBox(height: 24),
-
             _seccion('Nivel de riesgo', azulOscuro),
             const SizedBox(height: 12),
-
             Row(
               children: [
                 _BotonRiesgo(
@@ -542,9 +478,7 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -552,19 +486,13 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
                 onPressed: cargando ? null : guardar,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: azul,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: cargando
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Guardar cambios',
-                        style: TextStyle(color: Colors.white, fontSize: 17),
-                      ),
+                    : const Text('Guardar cambios', style: TextStyle(color: Colors.white, fontSize: 17)),
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
@@ -573,14 +501,7 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
   }
 
   Widget _seccion(String titulo, Color color) {
-    return Text(
-      titulo,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: color,
-        fontSize: 15,
-      ),
-    );
+    return Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 15));
   }
 }
 
@@ -642,43 +563,7 @@ class _Campo extends StatelessWidget {
       decoration: InputDecoration(
         hintText: label,
         prefixIcon: Icon(icono, color: const Color(0xFF6A93BE)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-}
-
-class _Tarjeta extends StatelessWidget {
-  final String titulo;
-  final Widget child;
-
-  const _Tarjeta({required this.titulo, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titulo,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2C3E6B),
-            ),
-          ),
-          const SizedBox(height: 14),
-          child,
-        ],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -688,11 +573,13 @@ class _InfoFila extends StatelessWidget {
   final IconData icono;
   final String etiqueta;
   final String valor;
+  final Color? colorValor;
 
   const _InfoFila({
     required this.icono,
     required this.etiqueta,
     required this.valor,
+    this.colorValor,
   });
 
   @override
@@ -716,17 +603,14 @@ class _InfoFila extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  etiqueta,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                Text(etiqueta, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(
                   valor,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF2C3E6B),
+                    color: colorValor ?? const Color(0xFF2C3E6B),
                   ),
                 ),
               ],
