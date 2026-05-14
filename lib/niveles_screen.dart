@@ -29,6 +29,13 @@ class _NivelesScreenState extends State<NivelesScreen> {
     super.dispose();
   }
 
+  // ─── Glucosa ────────────────────────────────────────────────────────────────
+  // Rangos según PDF clínico (ADA 2024):
+  //   Hipoglucemia  < 70
+  //   Controlada    70 – 130
+  //   Precaución    131 – 180
+  //   Peligro       > 180
+
   String _nivelGlucosa(double valor) {
     if (valor < 70) return 'hipoglucemia';
     if (valor <= 130) return 'controlada';
@@ -50,23 +57,41 @@ class _NivelesScreenState extends State<NivelesScreen> {
     return Colors.redAccent;
   }
 
+  // ─── Presión arterial ────────────────────────────────────────────────────────
+  // Rangos ajustados:
+  //   Controlada  sistólica <= 129  Y  diastólica <= 80   → ej. 120/80 ✅
+  //   Precaución  sistólica 130–139 O  diastólica 81–89   → ej. 120/85 🟠
+  //   Peligro     sistólica >= 140  O  diastólica >= 90   → ej. 140/90 🔴
+
+  // Devuelve 0 = controlada, 1 = precaución, 2 = peligro
+  int _nivelPresionInt(int sistolica, int diastolica) {
+    if (sistolica >= 140 || diastolica >= 90) return 2;
+    if (sistolica >= 130 || diastolica >= 81) return 1;
+    return 0;
+  }
+
   String _nivelPresion(int sistolica, int diastolica) {
-    if (sistolica < 130 && diastolica < 80) return 'controlada';
-    if (sistolica <= 139 && diastolica <= 89) return 'precaucion';
+    final n = _nivelPresionInt(sistolica, diastolica);
+    if (n == 0) return 'controlada';
+    if (n == 1) return 'precaucion';
     return 'peligro';
   }
 
   String _mensajePresion(int sistolica, int diastolica) {
-    if (sistolica < 130 && diastolica < 80) return 'Presión bien controlada';
-    if (sistolica <= 139 && diastolica <= 89) return 'Presión un poco elevada';
-    return 'Presión muy alta, riesgo de complicaciones';
+    final n = _nivelPresionInt(sistolica, diastolica);
+    if (n == 0) return 'Presión bien controlada';
+    if (n == 1) return 'Presión levemente elevada. Vigilar y consultar.';
+    return 'Presión alta. Riesgo de complicaciones. Consultar médico.';
   }
 
   Color _colorPresion(int sistolica, int diastolica) {
-    if (sistolica < 130 && diastolica < 80) return Colors.green;
-    if (sistolica <= 139 && diastolica <= 89) return Colors.orange;
+    final n = _nivelPresionInt(sistolica, diastolica);
+    if (n == 0) return Colors.green;
+    if (n == 1) return Colors.orange;
     return Colors.redAccent;
   }
+
+  // ─── Guardar ─────────────────────────────────────────────────────────────────
 
   Future<void> guardarNiveles() async {
     final glucosaText = glucosaController.text.trim();
@@ -126,6 +151,8 @@ class _NivelesScreenState extends State<NivelesScreen> {
     return meses[mes - 1];
   }
 
+  // ─── UI ──────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     const azul = Color(0xFF6A93BE);
@@ -163,7 +190,6 @@ class _NivelesScreenState extends State<NivelesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // Solo muestra el formulario si NO es solo lectura
             if (!widget.soloLectura) ...[
               Container(
                 padding: const EdgeInsets.all(18),
@@ -439,6 +465,8 @@ class _NivelesScreenState extends State<NivelesScreen> {
     );
   }
 }
+
+// ─── Widget auxiliar ──────────────────────────────────────────────────────────
 
 class _ItemNivel extends StatelessWidget {
   final String etiqueta;
