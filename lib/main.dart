@@ -4,12 +4,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'loginscreen.dart';
 import 'crearcuenta.dart';
+import 'notificaciones.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await NotificationService.initialize();
+  await NotificationService.programarRecordatorioSemanal();
+  await NotificationService.cancelarTodo();
+  await NotificationService.programarRecordatorioDiario();
+
   runApp(const DMStrideApp());
 }
 

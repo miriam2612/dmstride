@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'main.dart';
 import 'expedientepaciente.dart';
+import 'alertas_screen.dart';
+import 'alertas_service.dart';
+import 'chat_screen.dart';
 
 class DoctorScreen extends StatefulWidget {
   const DoctorScreen({super.key});
@@ -151,7 +154,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
     );
   }
 
-  List<QueryDocumentSnapshot> aplicarFiltro(List<QueryDocumentSnapshot> lista) {
+  List<QueryDocumentSnapshot> aplicarFiltro(
+      List<QueryDocumentSnapshot> lista) {
     final ordenRiesgo = {'alto': 0, 'moderado': 1, 'estable': 2};
 
     if (filtro == 'estable' || filtro == 'moderado' || filtro == 'alto') {
@@ -162,19 +166,21 @@ class _DoctorScreenState extends State<DoctorScreen> {
     }
 
     if (filtro == 'alto_estable') {
-      return List.from(lista)..sort((a, b) {
-        final ra = (a.data() as Map)['riesgo'] ?? 'estable';
-        final rb = (b.data() as Map)['riesgo'] ?? 'estable';
-        return (ordenRiesgo[ra] ?? 2).compareTo(ordenRiesgo[rb] ?? 2);
-      });
+      return List.from(lista)
+        ..sort((a, b) {
+          final ra = (a.data() as Map)['riesgo'] ?? 'estable';
+          final rb = (b.data() as Map)['riesgo'] ?? 'estable';
+          return (ordenRiesgo[ra] ?? 2).compareTo(ordenRiesgo[rb] ?? 2);
+        });
     }
 
     if (filtro == 'estable_alto') {
-      return List.from(lista)..sort((a, b) {
-        final ra = (a.data() as Map)['riesgo'] ?? 'estable';
-        final rb = (b.data() as Map)['riesgo'] ?? 'estable';
-        return (ordenRiesgo[rb] ?? 2).compareTo(ordenRiesgo[ra] ?? 2);
-      });
+      return List.from(lista)
+        ..sort((a, b) {
+          final ra = (a.data() as Map)['riesgo'] ?? 'estable';
+          final rb = (b.data() as Map)['riesgo'] ?? 'estable';
+          return (ordenRiesgo[rb] ?? 2).compareTo(ordenRiesgo[ra] ?? 2);
+        });
     }
 
     return lista;
@@ -182,12 +188,18 @@ class _DoctorScreenState extends State<DoctorScreen> {
 
   String _etiquetaFiltro() {
     switch (filtro) {
-      case 'estable': return 'Solo estables';
-      case 'moderado': return 'Solo moderados';
-      case 'alto': return 'Solo alto riesgo';
-      case 'alto_estable': return 'Urgentes primero';
-      case 'estable_alto': return 'Estables primero';
-      default: return '';
+      case 'estable':
+        return 'Solo estables';
+      case 'moderado':
+        return 'Solo moderados';
+      case 'alto':
+        return 'Solo alto riesgo';
+      case 'alto_estable':
+        return 'Urgentes primero';
+      case 'estable_alto':
+        return 'Estables primero';
+      default:
+        return '';
     }
   }
 
@@ -210,7 +222,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
@@ -263,17 +274,20 @@ class _DoctorScreenState extends State<DoctorScreen> {
                     Expanded(
                       child: TextField(
                         controller: searchController,
-                        onChanged: (val) => setState(() => busqueda = val),
+                        onChanged: (val) =>
+                            setState(() => busqueda = val),
                         decoration: InputDecoration(
                           hintText: 'Buscar por nombre...',
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          prefixIcon: const Icon(Icons.search,
+                              color: Colors.grey),
                           filled: true,
                           fillColor: const Color(0xFFF5F7FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12),
                         ),
                       ),
                     ),
@@ -283,13 +297,18 @@ class _DoctorScreenState extends State<DoctorScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: filtro != 'todos' ? azul : Colors.white,
+                          color: filtro != 'todos'
+                              ? azul
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE0E0E0)),
+                          border: Border.all(
+                              color: const Color(0xFFE0E0E0)),
                         ),
                         child: Icon(
                           Icons.tune_rounded,
-                          color: filtro != 'todos' ? Colors.white : azul,
+                          color: filtro != 'todos'
+                              ? Colors.white
+                              : azul,
                           size: 22,
                         ),
                       ),
@@ -301,9 +320,11 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: GestureDetector(
-                      onTap: () => setState(() => filtro = 'todos'),
+                      onTap: () =>
+                          setState(() => filtro = 'todos'),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEEF3FB),
                           borderRadius: BorderRadius.circular(20),
@@ -320,7 +341,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.close, size: 14, color: Color(0xFF6A93BE)),
+                            const Icon(Icons.close,
+                                size: 14,
+                                color: Color(0xFF6A93BE)),
                           ],
                         ),
                       ),
@@ -339,9 +362,11 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   .where('tipo', isEqualTo: 'paciente')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF6A93BE)),
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF6A93BE)),
                   );
                 }
 
@@ -349,8 +374,10 @@ class _DoctorScreenState extends State<DoctorScreen> {
 
                 final porBusqueda = pacientes.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  final nombre = (data['nombre'] ?? '').toLowerCase();
-                  return nombre.contains(busqueda.toLowerCase());
+                  final nombre =
+                      (data['nombre'] ?? '').toLowerCase();
+                  return nombre
+                      .contains(busqueda.toLowerCase());
                 }).toList();
 
                 final filtrados = aplicarFiltro(porBusqueda);
@@ -361,9 +388,13 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 for (var doc in porBusqueda) {
                   final data = doc.data() as Map<String, dynamic>;
                   final riesgo = data['riesgo'] ?? 'estable';
-                  if (riesgo == 'alto') { altoRiesgo++; }
-                  else if (riesgo == 'moderado') { moderado++; }
-                  else { estable++; }
+                  if (riesgo == 'alto') {
+                    altoRiesgo++;
+                  } else if (riesgo == 'moderado') {
+                    moderado++;
+                  } else {
+                    estable++;
+                  }
                 }
 
                 return SingleChildScrollView(
@@ -403,7 +434,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
                       const SizedBox(height: 24),
 
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Lista de pacientes',
@@ -431,13 +463,15 @@ class _DoctorScreenState extends State<DoctorScreen> {
                             padding: EdgeInsets.all(30),
                             child: Text(
                               'No hay pacientes con ese filtro',
-                              style: TextStyle(color: Colors.grey),
+                              style:
+                                  TextStyle(color: Colors.grey),
                             ),
                           ),
                         )
                       else
                         ...filtrados.map((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
+                          final data =
+                              doc.data() as Map<String, dynamic>;
                           return _TarjetaPaciente(
                             nombre: data['nombre'] ?? 'Sin nombre',
                             correo: data['correo'] ?? '',
@@ -453,15 +487,20 @@ class _DoctorScreenState extends State<DoctorScreen> {
                         height: 50,
                         child: OutlinedButton.icon(
                           onPressed: cerrarSesion,
-                          icon: const Icon(Icons.logout, color: Colors.redAccent),
+                          icon: const Icon(Icons.logout,
+                              color: Colors.redAccent),
                           label: const Text(
                             'Cerrar sesión',
-                            style: TextStyle(color: Colors.redAccent, fontSize: 15),
+                            style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 15),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.redAccent),
+                            side: const BorderSide(
+                                color: Colors.redAccent),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius:
+                                  BorderRadius.circular(12),
                             ),
                           ),
                         ),
@@ -480,6 +519,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// OPCIÓN FILTRO
+// ═══════════════════════════════════════════════════════════════════════════════
 class _OpcionFiltro extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -501,12 +543,15 @@ class _OpcionFiltro extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: seleccionado ? color.withValues(alpha: 0.1) : Colors.white,
+          color:
+              seleccionado ? color.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: seleccionado ? color : const Color(0xFFE0E0E0),
+            color:
+                seleccionado ? color : const Color(0xFFE0E0E0),
           ),
         ),
         child: Row(
@@ -517,8 +562,12 @@ class _OpcionFiltro extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: seleccionado ? color : const Color(0xFF2C3E6B),
-                fontWeight: seleccionado ? FontWeight.bold : FontWeight.normal,
+                color: seleccionado
+                    ? color
+                    : const Color(0xFF2C3E6B),
+                fontWeight: seleccionado
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
             const Spacer(),
@@ -531,6 +580,9 @@ class _OpcionFiltro extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TARJETA RESUMEN
+// ═══════════════════════════════════════════════════════════════════════════════
 class _TarjetaResumen extends StatelessWidget {
   final String label;
   final int numero;
@@ -583,6 +635,9 @@ class _TarjetaResumen extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TARJETA PACIENTE ✅ con alertas + Chat con indicador de mensajes nuevos
+// ═══════════════════════════════════════════════════════════════════════════════
 class _TarjetaPaciente extends StatelessWidget {
   final String nombre;
   final String correo;
@@ -618,125 +673,334 @@ class _TarjetaPaciente extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .collection('alertas')
+          .where('leida', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final alertasNoLeidas = snapshot.data?.docs ?? [];
+        final tieneAlertas = alertasNoLeidas.isNotEmpty;
+        final hayAltoRiesgo = alertasNoLeidas.any((doc) =>
+            (doc.data() as Map<String, dynamic>)['nivel'] ==
+            'alto');
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: hayAltoRiesgo
+                  ? Colors.redAccent.withOpacity(0.4)
+                  : tieneAlertas
+                      ? Colors.orange.withOpacity(0.4)
+                      : const Color(0xFFE0E0E0),
+              width: tieneAlertas ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEEF3FB),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  iniciales,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF6A93BE),
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nombre,
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEEF3FB),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      iniciales,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Color(0xFF2C3E6B),
+                        color: Color(0xFF6A93BE),
+                        fontSize: 16,
                       ),
                     ),
-                    Text(
-                      correo,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: colorRiesgo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  etiquetaRiesgo,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: colorRiesgo,
                   ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ExpedientePacienteScreen(
-                          uid: uid,
-                          nombre: nombre,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          nombre,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF2C3E6B),
+                          ),
+                        ),
+                        Text(
+                          correo,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorRiesgo.withOpacity(0.1),
+                          borderRadius:
+                              BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          etiquetaRiesgo,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: colorRiesgo,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE0E0E0)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                      if (tieneAlertas) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: hayAltoRiesgo
+                                ? Colors.redAccent
+                                    .withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
+                            borderRadius:
+                                BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.notifications_active,
+                                size: 11,
+                                color: hayAltoRiesgo
+                                    ? Colors.redAccent
+                                    : Colors.orange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                hayAltoRiesgo
+                                    ? 'Requiere revisión'
+                                    : 'Alerta activa',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: hayAltoRiesgo
+                                      ? Colors.redAccent
+                                      : Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  child: const Text(
-                    'Ver expediente',
-                    style: TextStyle(color: Color(0xFF2C3E6B), fontSize: 13),
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6A93BE),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  // ── Ver expediente ──
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ExpedientePacienteScreen(
+                              uid: uid,
+                              nombre: nombre,
+                            ),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                            color: Color(0xFFE0E0E0)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10),
+                      ),
+                      child: const Text(
+                        'Ver expediente',
+                        style: TextStyle(
+                            color: Color(0xFF2C3E6B),
+                            fontSize: 13),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text(
-                    'Enviar consejo',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  const SizedBox(width: 10),
+
+                  // ── Botón alertas o Chat con indicador ──
+                  Expanded(
+                    child: tieneAlertas
+                        ? ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AlertasScreen(
+                                    uid: uid,
+                                    nombrePaciente: nombre,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                                Icons.notifications_active,
+                                color: Colors.white,
+                                size: 14),
+                            label: Text(
+                              '${alertasNoLeidas.length} alerta${alertasNoLeidas.length > 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: hayAltoRiesgo
+                                  ? Colors.redAccent
+                                  : Colors.orange,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(10),
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(
+                                      vertical: 10),
+                            ),
+                          )
+                        // ✅ Botón Chat con indicador de mensajes nuevos
+                        : StreamBuilder<QuerySnapshot>(
+                            stream: FirebaseFirestore.instance
+                                .collection('usuarios')
+                                .doc(uid)
+                                .collection('chatDoctor')
+                                .where('enviadoPor',
+                                    isEqualTo: 'paciente')
+                                .where('leido',
+                                    isEqualTo: false)
+                                .snapshots(),
+                            builder: (context, chatSnap) {
+                              final noLeidos =
+                                  chatSnap.data?.docs.length ?? 0;
+
+                              return ElevatedButton(
+                                onPressed: () async {
+                                  final doctorUid = FirebaseAuth
+                                      .instance.currentUser?.uid;
+                                  String doctorNombre = 'Doctor';
+                                  if (doctorUid != null) {
+                                    try {
+                                      final doc =
+                                          await FirebaseFirestore
+                                              .instance
+                                              .collection('usuarios')
+                                              .doc(doctorUid)
+                                              .get();
+                                      doctorNombre =
+                                          doc.data()?['nombre'] ??
+                                              'Doctor';
+                                    } catch (e) {
+                                      debugPrint('Error: $e');
+                                    }
+                                  }
+                                  if (context.mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChatDoctorScreen(
+                                          pacienteId: uid,
+                                          nombrePaciente: nombre,
+                                          miUid: doctorUid ?? '',
+                                          miNombre: doctorNombre,
+                                          miRol: 'doctor',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(0xFF6A93BE),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                  ),
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                          vertical: 10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.chat_outlined,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'Chat',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13),
+                                    ),
+                                    // ✅ Punto rojo con contador
+                                    if (noLeidos > 0) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration:
+                                            const BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '$noLeidos',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight:
+                                                FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

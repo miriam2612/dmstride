@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'pantallapaciente.dart';
 import 'pantalladoctor.dart';
+import 'consentimiento_screen.dart'; // ← agregar este import
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -68,19 +69,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'correo': correoController.text.trim(),
         'tipo': tipoUsuario,
         'fechaRegistro': DateTime.now(),
+        // ✅ Inicializar consentimiento como false hasta que lo acepte
+        'consentimientoAceptado': false,
+        'fechaConsentimiento': null,
       });
 
       if (mounted) {
         if (tipoUsuario == 'doctor') {
+          // ✅ Doctores van directo sin consentimiento
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const DoctorScreen()),
             (route) => false,
           );
         } else {
+          // ✅ Pacientes pasan por consentimiento antes de entrar
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const PatientProfileScreen()),
+            MaterialPageRoute(
+              builder: (_) => ConsentimientoScreen(
+                nextScreen: const PatientProfileScreen(),
+              ),
+            ),
             (route) => false,
           );
         }
@@ -166,13 +176,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         children: [
                           Icon(
                             Icons.person,
-                            color: tipoUsuario == 'paciente' ? Colors.white : azul,
+                            color: tipoUsuario == 'paciente'
+                                ? Colors.white
+                                : azul,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Paciente',
                             style: TextStyle(
-                              color: tipoUsuario == 'paciente' ? Colors.white : azul,
+                              color: tipoUsuario == 'paciente'
+                                  ? Colors.white
+                                  : azul,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -198,13 +212,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         children: [
                           Icon(
                             Icons.medical_services,
-                            color: tipoUsuario == 'doctor' ? Colors.white : azul,
+                            color: tipoUsuario == 'doctor'
+                                ? Colors.white
+                                : azul,
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Doctor',
                             style: TextStyle(
-                              color: tipoUsuario == 'doctor' ? Colors.white : azul,
+                              color: tipoUsuario == 'doctor'
+                                  ? Colors.white
+                                  : azul,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

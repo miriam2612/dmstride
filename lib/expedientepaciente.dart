@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'galeriadefotos.dart';
 import 'niveles_screen.dart';
+import 'alertas_service.dart';
+import 'alertas_screen.dart';
+import 'cumplimiento_widget.dart';
 
 class ExpedientePacienteScreen extends StatefulWidget {
   final String uid;
@@ -14,10 +17,12 @@ class ExpedientePacienteScreen extends StatefulWidget {
   });
 
   @override
-  State<ExpedientePacienteScreen> createState() => _ExpedientePacienteScreenState();
+  State<ExpedientePacienteScreen> createState() =>
+      _ExpedientePacienteScreenState();
 }
 
-class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
+class _ExpedientePacienteScreenState
+    extends State<ExpedientePacienteScreen> {
   Map<String, dynamic>? datos;
   bool cargando = true;
 
@@ -32,7 +37,6 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
         .collection('usuarios')
         .doc(widget.uid)
         .get();
-
     if (doc.exists) {
       setState(() {
         datos = doc.data();
@@ -82,7 +86,8 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                     Align(
                       alignment: Alignment.topLeft,
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: const Icon(Icons.arrow_back,
+                            color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -129,7 +134,8 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                         const SizedBox(width: 6),
                         const Text(
                           'Paciente activo',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                          style: TextStyle(
+                              color: Colors.white70, fontSize: 13),
                         ),
                       ],
                     ),
@@ -184,6 +190,25 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                   const SizedBox(height: 14),
 
                   _BotonMenu(
+                    icono: Icons.notifications_active_outlined,
+                    titulo: 'Alertas clínicas',
+                    subtitulo: 'Ver alertas generadas automáticamente',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AlertasScreen(
+                            uid: widget.uid,
+                            nombrePaciente: widget.nombre,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  _BotonMenu(
                     icono: Icons.edit_outlined,
                     titulo: 'Editar expediente',
                     subtitulo: 'Historial médico y nivel de riesgo',
@@ -203,7 +228,7 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Resumen rápido del paciente
+                  // ── Resumen rápido del paciente ──
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -231,8 +256,10 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                         _InfoFila(
                           icono: Icons.warning_amber_rounded,
                           etiqueta: 'Nivel de riesgo',
-                          valor: _etiquetaRiesgo(datos?['riesgo'] ?? 'estable'),
-                          colorValor: _colorRiesgo(datos?['riesgo'] ?? 'estable'),
+                          valor: _etiquetaRiesgo(
+                              datos?['riesgo'] ?? 'estable'),
+                          colorValor: _colorRiesgo(
+                              datos?['riesgo'] ?? 'estable'),
                         ),
                         _InfoFila(
                           icono: Icons.bloodtype_rounded,
@@ -244,9 +271,33 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
                           etiqueta: 'Heridas',
                           valor: datos?['heridas'] ?? 'Sin registrar',
                         ),
+                        _InfoFila(
+                          icono: Icons.medication_rounded,
+                          etiqueta: 'Tratamiento',
+                          valor: datos?['tipoTratamiento'] ?? 'Sin registrar',
+                        ),
+                        _InfoFila(
+                          icono: Icons.colorize_rounded,
+                          etiqueta: 'Usa insulina',
+                          valor: datos?['usaInsulina'] == true
+                              ? 'Sí'
+                              : datos?['usaInsulina'] == false
+                                  ? 'No'
+                                  : 'Sin registrar',
+                        ),
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // ✅ Semáforo de riesgo
+                  const _SemaforoRiesgo(),
+
+                  const SizedBox(height: 16),
+
+                  // ✅ Estado de cumplimiento
+                  EstadoCumplimientoCard(uid: widget.uid),
 
                   const SizedBox(height: 30),
                 ],
@@ -271,6 +322,9 @@ class _ExpedientePacienteScreenState extends State<ExpedientePacienteScreen> {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOTÓN MENÚ
+// ═══════════════════════════════════════════════════════════════════════════════
 class _BotonMenu extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -322,7 +376,8 @@ class _BotonMenu extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitulo,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(
+                        fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
@@ -335,6 +390,147 @@ class _BotonMenu extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEMÁFORO DE RIESGO ✅
+// ═══════════════════════════════════════════════════════════════════════════════
+class _SemaforoRiesgo extends StatelessWidget {
+  const _SemaforoRiesgo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.traffic_rounded,
+                  color: Color(0xFF6A93BE), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Semáforo de riesgo',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E6B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          _FilaSemaforo(
+            color: Colors.green,
+            nivel: 'Estable',
+            descripcion:
+                'Seguimiento normal. El paciente lleva sus registros al día sin valores de alerta.',
+          ),
+          const SizedBox(height: 10),
+
+          _FilaSemaforo(
+            color: Colors.orange,
+            nivel: 'Moderado',
+            descripcion:
+                'Requiere atención. Revisar registros de glucosa, presión y fotos del pie.',
+          ),
+          const SizedBox(height: 10),
+
+          _FilaSemaforo(
+            color: Colors.redAccent,
+            nivel: 'Crítico',
+            descripcion:
+                'Prioridad alta. Contactar al paciente y revisar alertas clínicas de inmediato.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FILA SEMÁFORO
+// ═══════════════════════════════════════════════════════════════════════════════
+class _FilaSemaforo extends StatelessWidget {
+  final Color color;
+  final String nivel;
+  final String descripcion;
+
+  const _FilaSemaforo({
+    required this.color,
+    required this.nivel,
+    required this.descripcion,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nivel,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  descripcion,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EDITAR EXPEDIENTE
+// ═══════════════════════════════════════════════════════════════════════════════
 class EditarExpedienteScreen extends StatefulWidget {
   final String uid;
   final Map<String, dynamic> datos;
@@ -346,27 +542,50 @@ class EditarExpedienteScreen extends StatefulWidget {
   });
 
   @override
-  State<EditarExpedienteScreen> createState() => _EditarExpedienteScreenState();
+  State<EditarExpedienteScreen> createState() =>
+      _EditarExpedienteScreenState();
 }
 
-class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
+class _EditarExpedienteScreenState
+    extends State<EditarExpedienteScreen> {
   bool cargando = false;
   String riesgo = 'estable';
+  bool? usaInsulina;
+  String? tipoTratamiento;
 
-  late final diagnosticoController = TextEditingController(text: widget.datos['diagnostico'] ?? '');
-  late final duracionController = TextEditingController(text: widget.datos['duracion'] ?? '');
-  late final comorbilController = TextEditingController(text: widget.datos['comorbilidades'] ?? '');
-  late final hba1cController = TextEditingController(text: widget.datos['hba1c'] ?? '');
-  late final heridasController = TextEditingController(text: widget.datos['heridas'] ?? '');
-  late final alergiasController = TextEditingController(text: widget.datos['alergias'] ?? '');
-  late final tabaquismoController = TextEditingController(text: widget.datos['tabaquismo'] ?? '');
-  late final dislipidemiasController = TextEditingController(text: widget.datos['dislipidemias'] ?? '');
-  late final actividadController = TextEditingController(text: widget.datos['actividadFisica'] ?? '');
+  final List<String> opcionesTratamiento = [
+    'Sin insulina',
+    'Insulina',
+    'Medicamento oral',
+    'Insulina + medicamento oral',
+    'No sabe',
+  ];
+
+  late final diagnosticoController =
+      TextEditingController(text: widget.datos['diagnostico'] ?? '');
+  late final duracionController =
+      TextEditingController(text: widget.datos['duracion'] ?? '');
+  late final comorbilController =
+      TextEditingController(text: widget.datos['comorbilidades'] ?? '');
+  late final hba1cController =
+      TextEditingController(text: widget.datos['hba1c'] ?? '');
+  late final heridasController =
+      TextEditingController(text: widget.datos['heridas'] ?? '');
+  late final alergiasController =
+      TextEditingController(text: widget.datos['alergias'] ?? '');
+  late final tabaquismoController =
+      TextEditingController(text: widget.datos['tabaquismo'] ?? '');
+  late final dislipidemiasController =
+      TextEditingController(text: widget.datos['dislipidemias'] ?? '');
+  late final actividadController =
+      TextEditingController(text: widget.datos['actividadFisica'] ?? '');
 
   @override
   void initState() {
     super.initState();
     riesgo = widget.datos['riesgo'] ?? 'estable';
+    usaInsulina = widget.datos['usaInsulina'];
+    tipoTratamiento = widget.datos['tipoTratamiento'];
   }
 
   @override
@@ -384,7 +603,18 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
   }
 
   Future<void> guardar() async {
+    if (usaInsulina == null || tipoTratamiento == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa la sección de tratamiento'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => cargando = true);
+
     await FirebaseFirestore.instance
         .collection('usuarios')
         .doc(widget.uid)
@@ -399,7 +629,19 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
       'dislipidemias': dislipidemiasController.text.trim(),
       'actividadFisica': actividadController.text.trim(),
       'riesgo': riesgo,
+      'usaInsulina': usaInsulina,
+      'tipoTratamiento': tipoTratamiento,
     });
+
+    try {
+      await AlertasService.evaluarHeridas(
+        uid: widget.uid,
+        heridas: heridasController.text.trim(),
+      );
+    } catch (e) {
+      debugPrint('Alerta heridas falló: $e');
+    }
+
     if (mounted) Navigator.pop(context);
     setState(() => cargando = false);
   }
@@ -420,37 +662,173 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
         ),
         title: const Text(
           'Editar expediente',
-          style: TextStyle(color: azul, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+              color: azul, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _seccion('Diagnóstico y evolución', azulOscuro),
             const SizedBox(height: 12),
-            _Campo(label: 'Diagnóstico principal', icono: Icons.medical_services_outlined, controller: diagnosticoController),
+            _Campo(
+                label: 'Diagnóstico principal',
+                icono: Icons.medical_services_outlined,
+                controller: diagnosticoController),
             const SizedBox(height: 12),
-            _Campo(label: 'Tiempo desde el diagnóstico (ej. 5 años)', icono: Icons.history_rounded, controller: duracionController),
+            _Campo(
+                label: 'Tiempo desde el diagnóstico (ej. 5 años)',
+                icono: Icons.history_rounded,
+                controller: duracionController),
             const SizedBox(height: 12),
-            _Campo(label: 'Último HbA1c (ej. 7.4%)', icono: Icons.bloodtype_outlined, controller: hba1cController),
+            _Campo(
+                label: 'Último HbA1c (ej. 7.4%)',
+                icono: Icons.bloodtype_outlined,
+                controller: hba1cController),
+            const SizedBox(height: 24),
+
+            _seccion('Tratamiento de diabetes', azulOscuro),
+            const SizedBox(height: 12),
+            const Text('¿Usa insulina?',
+                style: TextStyle(
+                    fontSize: 14, color: Color(0xFF2C3E6B))),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('Sí',
+                        style: TextStyle(fontSize: 14)),
+                    value: true,
+                    groupValue: usaInsulina,
+                    activeColor: azul,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) =>
+                        setState(() => usaInsulina = val),
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<bool>(
+                    title: const Text('No',
+                        style: TextStyle(fontSize: 14)),
+                    value: false,
+                    groupValue: usaInsulina,
+                    activeColor: azul,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (val) =>
+                        setState(() => usaInsulina = val),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: tipoTratamiento,
+              decoration: InputDecoration(
+                hintText: 'Tipo de tratamiento',
+                prefixIcon: const Icon(Icons.medication_outlined,
+                    color: azul),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              items: opcionesTratamiento.map((opcion) {
+                return DropdownMenuItem(
+                  value: opcion,
+                  child: Text(opcion,
+                      style: const TextStyle(fontSize: 14)),
+                );
+              }).toList(),
+              onChanged: (val) =>
+                  setState(() => tipoTratamiento = val),
+            ),
+
+            if (usaInsulina == true) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF6A93BE), size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Este paciente usa insulina. Se recomienda monitoreo de glucosa varias veces al día.',
+                        style: TextStyle(
+                            fontSize: 12, color: Color(0xFF2C3E6B)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            if (usaInsulina == false) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FFF4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        color: Colors.green, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Este paciente no usa insulina. Se recomienda un recordatorio diario de glucosa.',
+                        style: TextStyle(
+                            fontSize: 12, color: Color(0xFF2C3E6B)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
             _seccion('Condiciones asociadas', azulOscuro),
             const SizedBox(height: 12),
-            _Campo(label: 'Comorbilidades', icono: Icons.warning_amber_outlined, controller: comorbilController),
+            _Campo(
+                label: 'Comorbilidades',
+                icono: Icons.warning_amber_outlined,
+                controller: comorbilController),
             const SizedBox(height: 12),
-            _Campo(label: 'Heridas actuales o pasadas', icono: Icons.healing_outlined, controller: heridasController),
+            _Campo(
+                label: 'Heridas actuales o pasadas',
+                icono: Icons.healing_outlined,
+                controller: heridasController),
             const SizedBox(height: 12),
-            _Campo(label: 'Alergias', icono: Icons.medication_outlined, controller: alergiasController),
+            _Campo(
+                label: 'Alergias',
+                icono: Icons.medication_outlined,
+                controller: alergiasController),
             const SizedBox(height: 12),
-            _Campo(label: 'Dislipidemias (colesterol, triglicéridos)', icono: Icons.favorite_outline, controller: dislipidemiasController),
+            _Campo(
+                label: 'Dislipidemias (colesterol, triglicéridos)',
+                icono: Icons.favorite_outline,
+                controller: dislipidemiasController),
             const SizedBox(height: 24),
             _seccion('Estilo de vida', azulOscuro),
             const SizedBox(height: 12),
-            _Campo(label: 'Tabaquismo', icono: Icons.smoking_rooms_rounded, controller: tabaquismoController),
+            _Campo(
+                label: 'Tabaquismo',
+                icono: Icons.smoking_rooms_rounded,
+                controller: tabaquismoController),
             const SizedBox(height: 12),
-            _Campo(label: 'Actividad física', icono: Icons.directions_run_rounded, controller: actividadController),
+            _Campo(
+                label: 'Actividad física',
+                icono: Icons.directions_run_rounded,
+                controller: actividadController),
             const SizedBox(height: 24),
             _seccion('Nivel de riesgo', azulOscuro),
             const SizedBox(height: 12),
@@ -486,11 +864,15 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
                 onPressed: cargando ? null : guardar,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: azul,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 child: cargando
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Guardar cambios', style: TextStyle(color: Colors.white, fontSize: 17)),
+                    ? const CircularProgressIndicator(
+                        color: Colors.white)
+                    : const Text('Guardar cambios',
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 17)),
               ),
             ),
             const SizedBox(height: 30),
@@ -501,10 +883,15 @@ class _EditarExpedienteScreenState extends State<EditarExpedienteScreen> {
   }
 
   Widget _seccion(String titulo, Color color) {
-    return Text(titulo, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 15));
+    return Text(titulo,
+        style: TextStyle(
+            fontWeight: FontWeight.bold, color: color, fontSize: 15));
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOTÓN RIESGO
+// ═══════════════════════════════════════════════════════════════════════════════
 class _BotonRiesgo extends StatelessWidget {
   final String label;
   final Color color;
@@ -545,6 +932,9 @@ class _BotonRiesgo extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// CAMPO DE TEXTO
+// ═══════════════════════════════════════════════════════════════════════════════
 class _Campo extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -563,12 +953,16 @@ class _Campo extends StatelessWidget {
       decoration: InputDecoration(
         hintText: label,
         prefixIcon: Icon(icono, color: const Color(0xFF6A93BE)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border:
+            OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// INFO FILA
+// ═══════════════════════════════════════════════════════════════════════════════
 class _InfoFila extends StatelessWidget {
   final IconData icono;
   final String etiqueta;
@@ -603,7 +997,9 @@ class _InfoFila extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(etiqueta, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(etiqueta,
+                    style: const TextStyle(
+                        fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(
                   valor,
