@@ -197,7 +197,7 @@ class GaleriaFotosScreen extends StatelessWidget {
           for (var doc in fotos) {
             final data = doc.data() as Map<String, dynamic>;
             final fecha = data['fecha'] != null
-                ? (data['fecha'] as dynamic).toDate()
+                ? (data['fecha'] as dynamic).toDate().toLocal()
                 : DateTime.now();
             final clave = '${_nombreMes(fecha.month)} ${fecha.year}';
             agrupadas.putIfAbsent(clave, () => []).add(doc);
@@ -223,7 +223,7 @@ class GaleriaFotosScreen extends StatelessWidget {
                   ...entry.value.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     final fecha = data['fecha'] != null
-                        ? (data['fecha'] as dynamic).toDate()
+                        ? (data['fecha'] as dynamic).toDate().toLocal()
                         : DateTime.now();
 
                     return GestureDetector(

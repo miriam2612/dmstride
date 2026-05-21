@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Widget reutilizable — funciona tanto en vista paciente como en vista doctor
-// ═══════════════════════════════════════════════════════════════════════════════
 class EstadoCumplimientoCard extends StatefulWidget {
   final String uid;
 
@@ -36,7 +33,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
         .collection('usuarios')
         .doc(widget.uid);
 
-    // ── Verificar foto semanal ──
+    // Verificar foto semanal
     final fotos = await db
         .collection('fotos')
         .where('fecha',
@@ -44,7 +41,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
         .limit(1)
         .get();
 
-    // ── Verificar glucosa de hoy ──
+    // Verificar glucosa de hoy
     final glucosa = await db
         .collection('glucosaRegistros')
         .where('fechaHora',
@@ -53,7 +50,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
         .limit(1)
         .get();
 
-    // ── Verificar presión de hoy ──
+    // Verificar presión de hoy
     final presion = await db
         .collection('presionRegistros')
         .where('fechaHora',
@@ -86,7 +83,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Título ──
+          // Título
           Row(
             children: [
               const Icon(Icons.task_alt_rounded,
@@ -101,7 +98,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
                 ),
               ),
               const Spacer(),
-              // ── Botón refrescar ──
+              // Botón refrescar
               GestureDetector(
                 onTap: () {
                   setState(() => cargando = true);
@@ -151,7 +148,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
               completo: presionHoy,
             ),
 
-            // ── Resumen general ──
+            // Resumen general
             const SizedBox(height: 14),
             _resumenGeneral(),
           ],
@@ -220,7 +217,7 @@ class _EstadoCumplimientoCardState extends State<EstadoCumplimientoCard> {
   }
 }
 
-// ─── Widget auxiliar para cada ítem ──────────────────────────────────────────
+// Widget auxiliar para cada ítem
 class _ItemCumplimiento extends StatelessWidget {
   final IconData icono;
   final String titulo;

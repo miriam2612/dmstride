@@ -12,7 +12,7 @@ class AnalisisService {
     required String fotoId,
   }) async {
     try {
-      // 1. Mandar imagen a FastAPI
+      // Mandar imagen a FastAPI
       final response = await http.post(
         Uri.parse('$_baseUrl/analizar'),
         headers: {'Content-Type': 'application/json'},
@@ -22,7 +22,7 @@ class AnalisisService {
       if (response.statusCode == 200) {
         final resultado = jsonDecode(response.body);
 
-        // 2. Guardar resultados en Firestore
+        // Guardar resultados en Firestore
         await FirebaseFirestore.instance
             .collection('usuarios')
             .doc(usuarioId)

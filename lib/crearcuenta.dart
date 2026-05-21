@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'pantallapaciente.dart';
 import 'pantalladoctor.dart';
-import 'consentimiento_screen.dart'; // ← agregar este import
+import 'consentimiento_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -69,21 +69,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'correo': correoController.text.trim(),
         'tipo': tipoUsuario,
         'fechaRegistro': DateTime.now(),
-        // ✅ Inicializar consentimiento como false hasta que lo acepte
+        // Inicializar consentimiento como false hasta que lo acepte
         'consentimientoAceptado': false,
         'fechaConsentimiento': null,
       });
 
       if (mounted) {
         if (tipoUsuario == 'doctor') {
-          // ✅ Doctores van directo sin consentimiento
+          // Doctores van directo sin consentimiento
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const DoctorScreen()),
             (route) => false,
           );
         } else {
-          // ✅ Pacientes pasan por consentimiento antes de entrar
+          // Pacientes pasan por consentimiento antes de entrar
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(

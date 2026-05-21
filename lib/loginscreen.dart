@@ -132,13 +132,13 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 8),
 
             const Text(
-              '¿Entras como paciente o doctor?',
+              '¿Entras como paciente o medico?',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
 
             const SizedBox(height: 24),
 
-            // Selector paciente / doctor
+            // Selector paciente / medico
             Row(
               children: [
                 Expanded(
@@ -197,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Doctor',
+                            'Médico',
                             style: TextStyle(
                               color: tipoUsuario == 'doctor'
                                   ? Colors.white

@@ -6,9 +6,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
-  // ─────────────────────────────────────────
   // INICIALIZAR
-  // ─────────────────────────────────────────
   static Future<void> initialize() async {
     tz_data.initializeTimeZones();
 
@@ -22,10 +20,8 @@ class NotificationService {
     await _notifications.initialize(settings);
   }
 
-  // ─────────────────────────────────────────
   // NOTIFICACIÓN DIARIA — 8:00 AM
   // Para cambiar hora modifica: hora y minuto
-  // ─────────────────────────────────────────
   static Future<void> programarRecordatorioDiario() async {
     final mexico = tz.getLocation('America/Mexico_City');
     final ahora = tz.TZDateTime.now(mexico);
@@ -66,11 +62,9 @@ class NotificationService {
     );
   }
 
-  // ─────────────────────────────────────────
   // NOTIFICACIÓN SEMANAL — Domingo 8:00 PM
   // Para cambiar día: DateTime.sunday → monday, etc.
   // Para cambiar hora: modifica 20 y 0
-  // ─────────────────────────────────────────
   static Future<void> programarRecordatorioSemanal() async {
     final mexico = tz.getLocation('America/Mexico_City');
     final ahora = tz.TZDateTime.now(mexico);
@@ -115,9 +109,7 @@ class NotificationService {
     );
   }
 
-  // ─────────────────────────────────────────
   // PRUEBA — Llegan de inmediato
-  // ─────────────────────────────────────────
   static Future<void> probarNotificacionSemanal() async {
     await _notifications.show(
       10,
@@ -150,9 +142,7 @@ class NotificationService {
     );
   }
 
-  // ─────────────────────────────────────────
   // CANCELAR TODAS
-  // ─────────────────────────────────────────
   static Future<void> cancelarTodo() async {
     await _notifications.cancelAll();
   }

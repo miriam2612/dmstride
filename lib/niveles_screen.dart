@@ -37,6 +37,9 @@ class _NivelesScreenState extends State<NivelesScreen>
 
   late TabController _tabController;
 
+  // Semana seleccionada para filtrar lunes a domingo
+  DateTime semanaSeleccionada = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -52,7 +55,78 @@ class _NivelesScreenState extends State<NivelesScreen>
     super.dispose();
   }
 
-  // ─── Rangos glucosa ──────────────────────────────────────────────────────────
+  // SEMANA LUNES A DOMINGO
+
+  DateTime _inicioDeSemana(DateTime fecha) {
+    final local = fecha.toLocal();
+    final soloFecha = DateTime(local.year, local.month, local.day);
+
+    return soloFecha.subtract(Duration(days: soloFecha.weekday - 1));
+  }
+
+  DateTime _finDeSemana(DateTime fecha) {
+    final inicio = _inicioDeSemana(fecha);
+    return inicio.add(const Duration(days: 6));
+  }
+
+  DateTime _inicioSemanaSiguiente(DateTime fecha) {
+    final inicio = _inicioDeSemana(fecha);
+    return inicio.add(const Duration(days: 7));
+  }
+
+  String _textoSemana(DateTime fecha) {
+    final inicio = _inicioDeSemana(fecha);
+    final fin = _finDeSemana(fecha);
+
+    const meses = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre'
+    ];
+
+    if (inicio.month == fin.month && inicio.year == fin.year) {
+      return 'Semana del ${inicio.day} al ${fin.day} de ${meses[inicio.month - 1]}';
+    }
+
+    if (inicio.year == fin.year) {
+      return 'Semana del ${inicio.day} de ${meses[inicio.month - 1]} al ${fin.day} de ${meses[fin.month - 1]}';
+    }
+
+    return 'Semana del ${inicio.day} de ${meses[inicio.month - 1]} de ${inicio.year} al ${fin.day} de ${meses[fin.month - 1]} de ${fin.year}';
+  }
+
+  void _semanaAnterior() {
+    setState(() {
+      semanaSeleccionada =
+          semanaSeleccionada.subtract(const Duration(days: 7));
+    });
+  }
+
+  void _semanaSiguiente() {
+    setState(() {
+      semanaSeleccionada = semanaSeleccionada.add(const Duration(days: 7));
+    });
+  }
+
+  bool _esSemanaActual() {
+    final inicioActual = _inicioDeSemana(DateTime.now());
+    final inicioSeleccionada = _inicioDeSemana(semanaSeleccionada);
+
+    return inicioActual.year == inicioSeleccionada.year &&
+        inicioActual.month == inicioSeleccionada.month &&
+        inicioActual.day == inicioSeleccionada.day;
+  }
+
+  // Rangos glucosa 
   String _nivelGlucosa(double valor) {
     if (valor < 70) return 'hipoglucemia';
     if (valor <= 130) return 'controlada';
@@ -74,7 +148,7 @@ class _NivelesScreenState extends State<NivelesScreen>
     return Colors.redAccent;
   }
 
-  // ─── Rangos presión ──────────────────────────────────────────────────────────
+  // Rangos presión 
   int _nivelPresionInt(int s, int d) {
     if (s >= 140 || d >= 90) return 2;
     if (s >= 130 || d >= 81) return 1;
@@ -102,16 +176,18 @@ class _NivelesScreenState extends State<NivelesScreen>
     return Colors.redAccent;
   }
 
-  // ─── Guardar glucosa ✅ CORREGIDO ────────────────────────────────────────────
+  // Guardar glucosa 
   Future<void> guardarGlucosa() async {
     final texto = glucosaController.text.trim();
+
     if (texto.isEmpty || momentoMedicion == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Ingresa la glucosa y el momento de medición'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -121,7 +197,6 @@ class _NivelesScreenState extends State<NivelesScreen>
     setState(() => guardandoGlucosa = true);
 
     try {
-      // ✅ Guardar glucosa en Firestore
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(widget.uid)
@@ -133,7 +208,6 @@ class _NivelesScreenState extends State<NivelesScreen>
         'fechaHora': FieldValue.serverTimestamp(),
       });
 
-      // ✅ Evaluar alerta por separado — si falla no afecta el guardado
       try {
         await AlertasService.evaluarGlucosa(uid: widget.uid, valor: valor);
       } catch (e) {
@@ -142,14 +216,19 @@ class _NivelesScreenState extends State<NivelesScreen>
 
       if (mounted) {
         glucosaController.clear();
-        setState(() => momentoMedicion = null);
+        setState(() {
+          momentoMedicion = null;
+          semanaSeleccionada = DateTime.now();
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Glucosa guardada correctamente'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.green,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -161,17 +240,17 @@ class _NivelesScreenState extends State<NivelesScreen>
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.redAccent,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
     } finally {
-      // ✅ Siempre desactiva el loading
       if (mounted) setState(() => guardandoGlucosa = false);
     }
   }
 
-  // ─── Guardar presión ✅ CORREGIDO ────────────────────────────────────────────
+  // Guardar presión
   Future<void> guardarPresion() async {
     final sText = sistolicaController.text.trim();
     final dText = diastolicaController.text.trim();
@@ -182,7 +261,8 @@ class _NivelesScreenState extends State<NivelesScreen>
           content: const Text('Ingresa sistólica y diastólica'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;
@@ -194,7 +274,6 @@ class _NivelesScreenState extends State<NivelesScreen>
     setState(() => guardandoPresion = true);
 
     try {
-      // ✅ Guardar presión en Firestore
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(widget.uid)
@@ -206,10 +285,12 @@ class _NivelesScreenState extends State<NivelesScreen>
         'fechaHora': FieldValue.serverTimestamp(),
       });
 
-      // ✅ Evaluar alerta por separado — si falla no afecta el guardado
       try {
         await AlertasService.evaluarPresion(
-            uid: widget.uid, sistolica: s, diastolica: d);
+          uid: widget.uid,
+          sistolica: s,
+          diastolica: d,
+        );
       } catch (e) {
         debugPrint('Alerta presión falló: $e');
       }
@@ -217,13 +298,19 @@ class _NivelesScreenState extends State<NivelesScreen>
       if (mounted) {
         sistolicaController.clear();
         diastolicaController.clear();
+
+        setState(() {
+          semanaSeleccionada = DateTime.now();
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Presión arterial registrada correctamente'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.green,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
@@ -231,29 +318,40 @@ class _NivelesScreenState extends State<NivelesScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                const Text('Error al guardar presión. Intenta de nuevo.'),
+            content: const Text('Error al guardar presión. Intenta de nuevo.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.redAccent,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
     } finally {
-      // ✅ Siempre desactiva el loading
       if (mounted) setState(() => guardandoPresion = false);
     }
   }
 
-  // ─── Fecha legible ───────────────────────────────────────────────────────────
+  // Fecha legible
   String _fechaLegible(DateTime fecha) {
     const meses = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic'
     ];
+
     final hora = fecha.hour.toString().padLeft(2, '0');
     final min = fecha.minute.toString().padLeft(2, '0');
+
     return '${fecha.day} ${meses[fecha.month - 1]} — $hora:$min';
   }
 
@@ -261,6 +359,10 @@ class _NivelesScreenState extends State<NivelesScreen>
   Widget build(BuildContext context) {
     const azul = Color(0xFF6A93BE);
     const azulOscuro = Color(0xFF2C3E6B);
+
+    final inicioSemana = _inicioDeSemana(semanaSeleccionada);
+    final finSemana = _finDeSemana(semanaSeleccionada);
+    final inicioSemanaSiguiente = _inicioSemanaSiguiente(semanaSeleccionada);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -305,6 +407,13 @@ class _NivelesScreenState extends State<NivelesScreen>
             colorGlucosa: _colorGlucosa,
             mensajeGlucosa: _mensajeGlucosa,
             fechaLegible: _fechaLegible,
+            inicioSemana: inicioSemana,
+            finSemana: finSemana,
+            inicioSemanaSiguiente: inicioSemanaSiguiente,
+            textoSemana: _textoSemana(semanaSeleccionada),
+            onSemanaAnterior: _semanaAnterior,
+            onSemanaSiguiente: _semanaSiguiente,
+            esSemanaActual: _esSemanaActual(),
           ),
           _TabPresion(
             uid: widget.uid,
@@ -317,6 +426,13 @@ class _NivelesScreenState extends State<NivelesScreen>
             mensajePresion: _mensajePresion,
             nivelPresionInt: _nivelPresionInt,
             fechaLegible: _fechaLegible,
+            inicioSemana: inicioSemana,
+            finSemana: finSemana,
+            inicioSemanaSiguiente: inicioSemanaSiguiente,
+            textoSemana: _textoSemana(semanaSeleccionada),
+            onSemanaAnterior: _semanaAnterior,
+            onSemanaSiguiente: _semanaSiguiente,
+            esSemanaActual: _esSemanaActual(),
           ),
         ],
       ),
@@ -324,9 +440,97 @@ class _NivelesScreenState extends State<NivelesScreen>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// SELECTOR DE SEMANA
+
+class _SelectorSemana extends StatelessWidget {
+  final String textoSemana;
+  final VoidCallback onSemanaAnterior;
+  final VoidCallback onSemanaSiguiente;
+  final bool esSemanaActual;
+
+  const _SelectorSemana({
+    required this.textoSemana,
+    required this.onSemanaAnterior,
+    required this.onSemanaSiguiente,
+    required this.esSemanaActual,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: onSemanaAnterior,
+                icon: const Icon(Icons.chevron_left, color: azul),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      textoSemana,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: azulOscuro,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Lunes a domingo',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: esSemanaActual ? null : onSemanaSiguiente,
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: esSemanaActual ? Colors.grey.shade300 : azul,
+                ),
+              ),
+            ],
+          ),
+          if (!esSemanaActual) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3FB),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Estás viendo una semana anterior',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: azulOscuro,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 // TAB GLUCOSA
-// ═══════════════════════════════════════════════════════════════════════════════
 class _TabGlucosa extends StatelessWidget {
   final String uid;
   final bool soloLectura;
@@ -340,6 +544,14 @@ class _TabGlucosa extends StatelessWidget {
   final String Function(double) mensajeGlucosa;
   final String Function(DateTime) fechaLegible;
 
+  final DateTime inicioSemana;
+  final DateTime finSemana;
+  final DateTime inicioSemanaSiguiente;
+  final String textoSemana;
+  final VoidCallback onSemanaAnterior;
+  final VoidCallback onSemanaSiguiente;
+  final bool esSemanaActual;
+
   const _TabGlucosa({
     required this.uid,
     required this.soloLectura,
@@ -352,7 +564,232 @@ class _TabGlucosa extends StatelessWidget {
     required this.colorGlucosa,
     required this.mensajeGlucosa,
     required this.fechaLegible,
+    required this.inicioSemana,
+    required this.finSemana,
+    required this.inicioSemanaSiguiente,
+    required this.textoSemana,
+    required this.onSemanaAnterior,
+    required this.onSemanaSiguiente,
+    required this.esSemanaActual,
   });
+
+
+  void _mostrarRecomendacionesGlucometros(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.82,
+          minChildSize: 0.50,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F7FA),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(26),
+                ),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF3FB),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.bloodtype_outlined,
+                            color: azul,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Recomendaciones de glucómetros',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: azulOscuro,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Text(
+                      'Para que el registro de glucosa sea más estandarizado, se recomienda usar un glucómetro confiable, fácil de usar y con tiras reactivas disponibles.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        height: 1.45,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Color(0xFFE0E0E0)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: azul,
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Las opciones se sugieren por disponibilidad, facilidad para conseguir consumibles y uso práctico para pacientes.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: azulOscuro,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text(
+                      'Opciones sugeridas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: azulOscuro,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _GlucometroCard(
+                      nombre: 'Accu-Chek Guide',
+                      recomendacion: 'Opción recomendada',
+                      descripcion:
+                          'Buena opción para uso en casa por ser una marca reconocida y práctica para mediciones frecuentes.',
+                      precio: r'$380–$1,200 MXN aprox.',
+                      consumibles:
+                          'Tiras reactivas y lancetas fáciles de encontrar.',
+                      dondeEncontrarlo:
+                          'Disponible en farmacias, tiendas en línea y algunos distribuidores de equipo médico.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _GlucometroCard(
+                      nombre: 'OneTouch Select Plus Flex',
+                      recomendacion: 'Opción recomendada',
+                      descripcion:
+                          'Alternativa útil para llevar un registro constante de glucosa por su facilidad de uso.',
+                      precio: r'$300–$1,000 MXN aprox.',
+                      consumibles:
+                          'Tiras reactivas disponibles en farmacias y plataformas de compra en línea.',
+                      dondeEncontrarlo:
+                          'Disponible en farmacias, tiendas departamentales y tiendas en línea.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _GlucometroCard(
+                      nombre: 'Contour Next One',
+                      recomendacion: 'Opción alternativa',
+                      descripcion:
+                          'Puede considerarse como alternativa por su buena calidad y desempeño.',
+                      precio: r'$580–$900 MXN aprox.',
+                      consumibles:
+                          'Tiras disponibles, aunque la disponibilidad puede variar según la tienda.',
+                      dondeEncontrarlo:
+                          'Disponible en tiendas en línea, farmacias y algunos puntos de venta.',
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF3FB),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Recomendación final: se sugiere priorizar Accu-Chek Guide u OneTouch Select Plus Flex porque sus consumibles suelen ser fáciles de conseguir.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: azulOscuro,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: azul,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Entendido',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -364,17 +801,22 @@ class _TabGlucosa extends StatelessWidget {
           .collection('usuarios')
           .doc(uid)
           .collection('glucosaRegistros')
+          .where(
+            'fechaHora',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(inicioSemana),
+          )
+          .where(
+            'fechaHora',
+            isLessThan: Timestamp.fromDate(inicioSemanaSiguiente),
+          )
           .orderBy('fechaHora', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         final registros = snapshot.data?.docs ?? [];
 
-        final datosGrafica = registros.reversed
-            .take(10)
-            .toList()
-            .asMap()
-            .entries
-            .map((e) {
+        final listaOrdenada = registros.reversed.toList();
+
+        final datosGrafica = listaOrdenada.asMap().entries.map((e) {
           final data = e.value.data() as Map<String, dynamic>;
           final valor = (data['valor'] ?? 0).toDouble();
           return FlSpot(e.key.toDouble(), valor);
@@ -385,6 +827,14 @@ class _TabGlucosa extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SelectorSemana(
+                textoSemana: textoSemana,
+                onSemanaAnterior: onSemanaAnterior,
+                onSemanaSiguiente: onSemanaSiguiente,
+                esSemanaActual: esSemanaActual,
+              ),
+
+              const SizedBox(height: 20),
 
               if (!soloLectura) ...[
                 Container(
@@ -406,8 +856,10 @@ class _TabGlucosa extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text('Glucosa (mg/dL)',
-                          style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      const Text(
+                        'Glucosa (mg/dL)',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
                       const SizedBox(height: 6),
                       StatefulBuilder(
                         builder: (context, setLocal) {
@@ -420,59 +872,76 @@ class _TabGlucosa extends StatelessWidget {
                                 decoration: InputDecoration(
                                   hintText: 'Ej. 120',
                                   prefixIcon: const Icon(
-                                      Icons.bloodtype_outlined, color: azul),
+                                    Icons.bloodtype_outlined,
+                                    color: azul,
+                                  ),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                               ),
-                              Builder(builder: (_) {
-                                final val = double.tryParse(
-                                    glucosaController.text.trim());
-                                if (val == null) return const SizedBox();
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: colorGlucosa(val).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.circle,
-                                            color: colorGlucosa(val), size: 12),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            mensajeGlucosa(val),
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: colorGlucosa(val),
-                                              fontWeight: FontWeight.w500,
+                              Builder(
+                                builder: (_) {
+                                  final val = double.tryParse(
+                                    glucosaController.text.trim(),
+                                  );
+
+                                  if (val == null) return const SizedBox();
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            colorGlucosa(val).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            color: colorGlucosa(val),
+                                            size: 12,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              mensajeGlucosa(val),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: colorGlucosa(val),
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }),
+                                  );
+                                },
+                              ),
                             ],
                           );
                         },
                       ),
                       const SizedBox(height: 16),
-                      const Text('Momento de medición',
-                          style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      const Text(
+                        'Momento de medición',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
                         value: momentoMedicion,
                         decoration: InputDecoration(
                           hintText: 'Selecciona el momento',
-                          prefixIcon:
-                              const Icon(Icons.access_time, color: azul),
+                          prefixIcon: const Icon(
+                            Icons.access_time,
+                            color: azul,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -480,8 +949,10 @@ class _TabGlucosa extends StatelessWidget {
                         items: momentos.map((m) {
                           return DropdownMenuItem(
                             value: m,
-                            child: Text(m,
-                                style: const TextStyle(fontSize: 14)),
+                            child: Text(
+                              m,
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           );
                         }).toList(),
                         onChanged: onMomentoChanged,
@@ -500,10 +971,47 @@ class _TabGlucosa extends StatelessWidget {
                           ),
                           child: guardando
                               ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text('Guardar glucosa',
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  'Guardar glucosa',
                                   style: TextStyle(
-                                      color: Colors.white, fontSize: 16)),
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _mostrarRecomendacionesGlucometros(context),
+                          icon: const Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Color(0xFF6A93BE),
+                          ),
+                          label: const Text(
+                            'Ver recomendaciones',
+                            style: TextStyle(
+                              color: Color(0xFF6A93BE),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFF6A93BE),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -532,9 +1040,13 @@ class _TabGlucosa extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text('Últimos 10 registros',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        'Registros de esta semana (${registros.length})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       SizedBox(
                         height: 180,
@@ -561,7 +1073,9 @@ class _TabGlucosa extends StatelessWidget {
                                   getTitlesWidget: (val, _) => Text(
                                     val.toInt().toString(),
                                     style: const TextStyle(
-                                        fontSize: 10, color: Colors.grey),
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -613,6 +1127,7 @@ class _TabGlucosa extends StatelessWidget {
                                         : spot.y <= 130
                                             ? Colors.green
                                             : Colors.orange;
+
                                     return FlDotCirclePainter(
                                       radius: 4,
                                       color: c,
@@ -637,7 +1152,9 @@ class _TabGlucosa extends StatelessWidget {
                           _Leyenda(color: Colors.green, texto: '70–130'),
                           _Leyenda(color: Colors.orange, texto: '131–180'),
                           _Leyenda(
-                              color: Colors.redAccent, texto: '<70 / >180'),
+                            color: Colors.redAccent,
+                            texto: '<70 / >180',
+                          ),
                         ],
                       ),
                     ],
@@ -647,7 +1164,7 @@ class _TabGlucosa extends StatelessWidget {
               ],
 
               const Text(
-                'Historial de glucosa',
+                'Historial de glucosa de la semana',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -664,19 +1181,23 @@ class _TabGlucosa extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     child: Text(
                       soloLectura
-                          ? 'El paciente aún no ha registrado glucosa'
-                          : 'Aún no hay registros de glucosa',
+                          ? 'El paciente no registró glucosa esta semana'
+                          : 'No hay registros de glucosa esta semana',
                       style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 14),
+                        color: Colors.grey.shade400,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 )
               else
                 ...registros.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+
                   final fecha = data['fechaHora'] != null
-                      ? (data['fechaHora'] as dynamic).toDate()
+                      ? (data['fechaHora'] as dynamic).toDate().toLocal()
                       : DateTime.now();
+
                   final valor = (data['valor'] ?? 0).toDouble();
                   final momento = data['momentoMedicion'] ?? '';
                   final color = _colorPorEstado(data['estado'] ?? '');
@@ -707,7 +1228,9 @@ class _TabGlucosa extends StatelessWidget {
                               Text(
                                 fechaLegible(fecha),
                                 style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey),
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -722,14 +1245,18 @@ class _TabGlucosa extends StatelessWidget {
                                 Text(
                                   momento,
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                             ],
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -737,9 +1264,10 @@ class _TabGlucosa extends StatelessWidget {
                           child: Text(
                             _etiquetaEstado(data['estado'] ?? ''),
                             style: TextStyle(
-                                fontSize: 11,
-                                color: color,
-                                fontWeight: FontWeight.w600),
+                              fontSize: 11,
+                              color: color,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -756,9 +1284,7 @@ class _TabGlucosa extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TAB PRESIÓN
-// ═══════════════════════════════════════════════════════════════════════════════
 class _TabPresion extends StatelessWidget {
   final String uid;
   final bool soloLectura;
@@ -771,6 +1297,14 @@ class _TabPresion extends StatelessWidget {
   final int Function(int, int) nivelPresionInt;
   final String Function(DateTime) fechaLegible;
 
+  final DateTime inicioSemana;
+  final DateTime finSemana;
+  final DateTime inicioSemanaSiguiente;
+  final String textoSemana;
+  final VoidCallback onSemanaAnterior;
+  final VoidCallback onSemanaSiguiente;
+  final bool esSemanaActual;
+
   const _TabPresion({
     required this.uid,
     required this.soloLectura,
@@ -782,7 +1316,246 @@ class _TabPresion extends StatelessWidget {
     required this.mensajePresion,
     required this.nivelPresionInt,
     required this.fechaLegible,
+    required this.inicioSemana,
+    required this.finSemana,
+    required this.inicioSemanaSiguiente,
+    required this.textoSemana,
+    required this.onSemanaAnterior,
+    required this.onSemanaSiguiente,
+    required this.esSemanaActual,
   });
+
+
+  void _mostrarRecomendacionesTensiometros(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.82,
+          minChildSize: 0.50,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF5F7FA),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(26),
+                ),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF3FB),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.favorite_outline,
+                            color: azul,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Recomendaciones de baumanómetros',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: azulOscuro,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Text(
+                      'Para registrar la presión arterial de forma más constante, se recomienda usar un baumanómetro automático de brazo, sencillo de utilizar y con brazalete cómodo.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        height: 1.45,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Color(0xFFE0E0E0)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: azul,
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Se recomienda priorizar equipos de brazo sobre los de muñeca, ya que suelen ser más prácticos para mediciones constantes en casa.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: azulOscuro,
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text(
+                      'Opciones sugeridas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: azulOscuro,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _TensiometroCard(
+                      nombre: 'Omron HEM-7120',
+                      recomendacion: 'Mejor calidad-precio',
+                      descripcion:
+                          'Muy buena marca, sencillo, automático y confiable para uso en casa.',
+                      precio: 'Precio variable según tienda.',
+                      consumibles:
+                          'No requiere consumibles frecuentes; solo pilas o adaptador según el modelo.',
+                      dondeEncontrarlo:
+                          'Disponible en farmacias, tiendas departamentales y tiendas en línea.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _TensiometroCard(
+                      nombre: 'Omron HEM-7156T',
+                      recomendacion: 'Más completo',
+                      descripcion:
+                          'Mejor si se busca algo más moderno y con mejor brazalete.',
+                      precio: 'Precio variable según tienda.',
+                      consumibles:
+                          'No requiere consumibles frecuentes; se recomienda revisar el estado del brazalete con el uso.',
+                      dondeEncontrarlo:
+                          'Disponible en tiendas en línea, farmacias y distribuidores de equipos médicos.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _TensiometroCard(
+                      nombre: 'Beurer BM28',
+                      recomendacion: 'Bueno y económico',
+                      descripcion:
+                          'Buena opción si se quiere algo funcional sin gastar tanto.',
+                      precio: 'Precio variable según tienda.',
+                      consumibles:
+                          'No requiere consumibles frecuentes; funciona con pilas y brazalete de brazo.',
+                      dondeEncontrarlo:
+                          'Disponible en tiendas en línea y algunas tiendas de equipos de salud.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _TensiometroCard(
+                      nombre: 'Microlife BP3AG1',
+                      recomendacion: 'Más barato',
+                      descripcion:
+                          'Puede servir como opción básica, aunque si el presupuesto alcanza se prioriza Omron.',
+                      precio: 'Precio variable según tienda.',
+                      consumibles:
+                          'No requiere consumibles frecuentes; se recomienda verificar que incluya brazalete adecuado.',
+                      dondeEncontrarlo:
+                          'Disponible principalmente en tiendas en línea y algunos distribuidores.',
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF3FB),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Recomendación final: se sugiere priorizar Omron HEM-7120 u Omron HEM-7156T. Se evitarían baumanómetros de muñeca, salvo que sea por comodidad o viaje.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: azulOscuro,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: azul,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Entendido',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -794,21 +1567,37 @@ class _TabPresion extends StatelessWidget {
           .collection('usuarios')
           .doc(uid)
           .collection('presionRegistros')
+          .where(
+            'fechaHora',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(inicioSemana),
+          )
+          .where(
+            'fechaHora',
+            isLessThan: Timestamp.fromDate(inicioSemanaSiguiente),
+          )
           .orderBy('fechaHora', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         final registros = snapshot.data?.docs ?? [];
 
-        final listaReversed = registros.reversed.take(10).toList();
-        final spotsSistolica = listaReversed.asMap().entries.map((e) {
+        final listaOrdenada = registros.reversed.toList();
+
+        final spotsSistolica = listaOrdenada.asMap().entries.map((e) {
           final data = e.value.data() as Map<String, dynamic>;
+
           return FlSpot(
-              e.key.toDouble(), (data['sistolica'] ?? 0).toDouble());
+            e.key.toDouble(),
+            (data['sistolica'] ?? 0).toDouble(),
+          );
         }).toList();
-        final spotsDiastolica = listaReversed.asMap().entries.map((e) {
+
+        final spotsDiastolica = listaOrdenada.asMap().entries.map((e) {
           final data = e.value.data() as Map<String, dynamic>;
+
           return FlSpot(
-              e.key.toDouble(), (data['diastolica'] ?? 0).toDouble());
+            e.key.toDouble(),
+            (data['diastolica'] ?? 0).toDouble(),
+          );
         }).toList();
 
         return SingleChildScrollView(
@@ -816,6 +1605,14 @@ class _TabPresion extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _SelectorSemana(
+                textoSemana: textoSemana,
+                onSemanaAnterior: onSemanaAnterior,
+                onSemanaSiguiente: onSemanaSiguiente,
+                esSemanaActual: esSemanaActual,
+              ),
+
+              const SizedBox(height: 20),
 
               if (!soloLectura) ...[
                 Container(
@@ -837,16 +1634,18 @@ class _TabPresion extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text('Presión arterial (mmHg)',
-                          style:
-                              TextStyle(fontSize: 13, color: Colors.grey)),
+                      const Text(
+                        'Presión arterial (mmHg)',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
                       const SizedBox(height: 6),
                       StatefulBuilder(
                         builder: (context, setLocal) {
-                          final s = int.tryParse(
-                              sistolicaController.text.trim());
-                          final d = int.tryParse(
-                              diastolicaController.text.trim());
+                          final s =
+                              int.tryParse(sistolicaController.text.trim());
+                          final d =
+                              int.tryParse(diastolicaController.text.trim());
+
                           return Column(
                             children: [
                               Row(
@@ -867,11 +1666,15 @@ class _TabPresion extends StatelessWidget {
                                   ),
                                   const Padding(
                                     padding: EdgeInsets.symmetric(
-                                        horizontal: 10),
-                                    child: Text('/',
-                                        style: TextStyle(
-                                            fontSize: 22,
-                                            color: Colors.grey)),
+                                      horizontal: 10,
+                                    ),
+                                    child: Text(
+                                      '/',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                   ),
                                   Expanded(
                                     child: TextField(
@@ -893,17 +1696,20 @@ class _TabPresion extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        colorPresion(s, d).withOpacity(0.1),
+                                    color: colorPresion(s, d).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.circle,
-                                          color: colorPresion(s, d),
-                                          size: 12),
+                                      Icon(
+                                        Icons.circle,
+                                        color: colorPresion(s, d),
+                                        size: 12,
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -937,10 +1743,47 @@ class _TabPresion extends StatelessWidget {
                           ),
                           child: guardando
                               ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text('Guardar presión',
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  'Guardar presión',
                                   style: TextStyle(
-                                      color: Colors.white, fontSize: 16)),
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _mostrarRecomendacionesTensiometros(context),
+                          icon: const Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Color(0xFF6A93BE),
+                          ),
+                          label: const Text(
+                            'Ver recomendaciones',
+                            style: TextStyle(
+                              color: Color(0xFF6A93BE),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFF6A93BE),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -969,9 +1812,13 @@ class _TabPresion extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text('Últimos 10 registros',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        'Registros de esta semana (${registros.length})',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       SizedBox(
                         height: 180,
@@ -998,7 +1845,9 @@ class _TabPresion extends StatelessWidget {
                                   getTitlesWidget: (val, _) => Text(
                                     val.toInt().toString(),
                                     style: const TextStyle(
-                                        fontSize: 10, color: Colors.grey),
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1040,8 +1889,8 @@ class _TabPresion extends StatelessWidget {
                                 dotData: FlDotData(show: true),
                                 belowBarData: BarAreaData(
                                   show: true,
-                                  color: const Color(0xFF6A93BE)
-                                      .withOpacity(0.06),
+                                  color:
+                                      const Color(0xFF6A93BE).withOpacity(0.06),
                                 ),
                               ),
                               LineChartBarData(
@@ -1061,12 +1910,14 @@ class _TabPresion extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _Leyenda(
-                              color: const Color(0xFF6A93BE),
-                              texto: 'Sistólica'),
+                            color: const Color(0xFF6A93BE),
+                            texto: 'Sistólica',
+                          ),
                           const SizedBox(width: 20),
                           _Leyenda(
-                              color: const Color(0xFF2C3E6B),
-                              texto: 'Diastólica'),
+                            color: const Color(0xFF2C3E6B),
+                            texto: 'Diastólica',
+                          ),
                         ],
                       ),
                     ],
@@ -1076,7 +1927,7 @@ class _TabPresion extends StatelessWidget {
               ],
 
               const Text(
-                'Historial de presión arterial',
+                'Historial de presión arterial de la semana',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -1093,19 +1944,23 @@ class _TabPresion extends StatelessWidget {
                     padding: const EdgeInsets.all(20),
                     child: Text(
                       soloLectura
-                          ? 'El paciente aún no ha registrado presión'
-                          : 'Aún no hay registros de presión',
+                          ? 'El paciente no registró presión esta semana'
+                          : 'No hay registros de presión esta semana',
                       style: TextStyle(
-                          color: Colors.grey.shade400, fontSize: 14),
+                        color: Colors.grey.shade400,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 )
               else
                 ...registros.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+
                   final fecha = data['fechaHora'] != null
-                      ? (data['fechaHora'] as dynamic).toDate()
+                      ? (data['fechaHora'] as dynamic).toDate().toLocal()
                       : DateTime.now();
+
                   final s = data['sistolica'] ?? 0;
                   final d = data['diastolica'] ?? 0;
                   final color = _colorPorEstado(data['estado'] ?? '');
@@ -1136,7 +1991,9 @@ class _TabPresion extends StatelessWidget {
                               Text(
                                 fechaLegible(fecha),
                                 style: const TextStyle(
-                                    fontSize: 11, color: Colors.grey),
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -1152,7 +2009,9 @@ class _TabPresion extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -1160,9 +2019,10 @@ class _TabPresion extends StatelessWidget {
                           child: Text(
                             _etiquetaEstado(data['estado'] ?? ''),
                             style: TextStyle(
-                                fontSize: 11,
-                                color: color,
-                                fontWeight: FontWeight.w600),
+                              fontSize: 11,
+                              color: color,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -1179,9 +2039,8 @@ class _TabPresion extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Auxiliares
-// ═══════════════════════════════════════════════════════════════════════════════
+// AUXILIARES
+
 Color _colorPorEstado(String estado) {
   if (estado == 'controlada') return Colors.green;
   if (estado == 'precaucion') return Colors.orange;
@@ -1202,7 +2061,10 @@ class _Leyenda extends StatelessWidget {
   final Color color;
   final String texto;
 
-  const _Leyenda({required this.color, required this.texto});
+  const _Leyenda({
+    required this.color,
+    required this.texto,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1211,12 +2073,290 @@ class _Leyenda extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 4),
-        Text(texto,
-            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(
+          texto,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _GlucometroCard extends StatelessWidget {
+  final String nombre;
+  final String recomendacion;
+  final String descripcion;
+  final String precio;
+  final String consumibles;
+  final String dondeEncontrarlo;
+
+  const _GlucometroCard({
+    required this.nombre,
+    required this.recomendacion,
+    required this.descripcion,
+    required this.precio,
+    required this.consumibles,
+    required this.dondeEncontrarlo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.bloodtype_outlined,
+                  color: azul,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nombre,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: azulOscuro,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      recomendacion,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            descripcion,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: Colors.black87,
+              height: 1.35,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          _DetalleRecomendacion(
+            icono: Icons.payments_outlined,
+            titulo: 'Precio aproximado',
+            texto: precio,
+          ),
+          _DetalleRecomendacion(
+            icono: Icons.shopping_bag_outlined,
+            titulo: 'Consumibles',
+            texto: consumibles,
+          ),
+          _DetalleRecomendacion(
+            icono: Icons.storefront_outlined,
+            titulo: 'Dónde encontrarlo',
+            texto: dondeEncontrarlo,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TensiometroCard extends StatelessWidget {
+  final String nombre;
+  final String recomendacion;
+  final String descripcion;
+  final String precio;
+  final String consumibles;
+  final String dondeEncontrarlo;
+
+  const _TensiometroCard({
+    required this.nombre,
+    required this.recomendacion,
+    required this.descripcion,
+    required this.precio,
+    required this.consumibles,
+    required this.dondeEncontrarlo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.favorite_outline,
+                  color: azul,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nombre,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: azulOscuro,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      recomendacion,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            descripcion,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: Colors.black87,
+              height: 1.35,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          _DetalleRecomendacion(
+            icono: Icons.payments_outlined,
+            titulo: 'Precio aproximado',
+            texto: precio,
+          ),
+          _DetalleRecomendacion(
+            icono: Icons.battery_full_outlined,
+            titulo: 'Consumibles',
+            texto: consumibles,
+          ),
+          _DetalleRecomendacion(
+            icono: Icons.storefront_outlined,
+            titulo: 'Dónde encontrarlo',
+            texto: dondeEncontrarlo,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetalleRecomendacion extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String texto;
+
+  const _DetalleRecomendacion({
+    required this.icono,
+    required this.titulo,
+    required this.texto,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icono,
+            size: 17,
+            color: azul,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Colors.black87,
+                  height: 1.35,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$titulo: ',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: azulOscuro,
+                    ),
+                  ),
+                  TextSpan(text: texto),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

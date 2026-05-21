@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AlertasService {
   static final _db = FirebaseFirestore.instance;
 
-  // ─── Guardar alerta sin necesitar índice compuesto ────────────────────────
+  // Guardar alerta sin necesitar índice compuesto
   static Future<void> _guardarAlerta({
     required String uid,
     required String tipoAlerta,
@@ -25,7 +25,7 @@ class AlertasService {
         .where('fechaHora', isLessThan: Timestamp.fromDate(finDia))
         .get();
 
-    // ✅ Filtrar por tipoAlerta en memoria — no en Firestore
+    // Filtrar por tipoAlerta en memoria — no en Firestore
     final yaExiste = existente.docs.any((doc) {
       final data = doc.data() as Map<String, dynamic>;
       return data['tipoAlerta'] == tipoAlerta;
@@ -48,7 +48,7 @@ class AlertasService {
     });
   }
 
-  // ─── Evaluar glucosa ──────────────────────────────────────────────────────
+  //  Evaluar glucosa 
   static Future<void> evaluarGlucosa({
     required String uid,
     required double valor,
@@ -72,7 +72,7 @@ class AlertasService {
     }
   }
 
-  // ─── Evaluar presión arterial ─────────────────────────────────────────────
+  //  Evaluar presión arterial 
   static Future<void> evaluarPresion({
     required String uid,
     required int sistolica,
@@ -100,7 +100,7 @@ class AlertasService {
     }
   }
 
-  // ─── Evaluar foto semanal ─────────────────────────────────────────────────
+  //  Evaluar foto semanal 
   static Future<void> evaluarFotoSemanal({required String uid}) async {
     final hace7dias = DateTime.now().subtract(const Duration(days: 7));
 
@@ -124,7 +124,7 @@ class AlertasService {
     }
   }
 
-  // ─── Evaluar heridas en expediente ───────────────────────────────────────
+  //  Evaluar heridas en expediente 
   static Future<void> evaluarHeridas({
     required String uid,
     required String heridas,
@@ -151,7 +151,7 @@ class AlertasService {
     }
   }
 
-  // ─── Marcar alerta como leída ─────────────────────────────────────────────
+  //  Marcar alerta como leída 
   static Future<void> marcarLeida({
     required String uid,
     required String alertaId,

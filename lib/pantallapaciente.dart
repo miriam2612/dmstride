@@ -27,15 +27,19 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   Future<void> cargarDatos() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+
     final doc = await FirebaseFirestore.instance
         .collection('usuarios')
         .doc(uid)
         .get();
+
     if (doc.exists) {
       setState(() {
         datos = doc.data();
         cargando = false;
       });
+    } else {
+      setState(() => cargando = false);
     }
   }
 
@@ -80,8 +84,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
-            // ── Header ──
             Container(
               height: 260,
               decoration: const BoxDecoration(
@@ -138,7 +140,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         const Text(
                           'Paciente activo',
                           style: TextStyle(
-                              color: Colors.white70, fontSize: 13),
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
                         ),
                       ],
                     ),
@@ -153,8 +157,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-
-                  // ── Mi información ──
                   _BotonMenu(
                     icono: Icons.person_outline,
                     titulo: 'Mi información general',
@@ -164,7 +166,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => InformacionGeneralScreen(
-                            datos: datos!,
+                            datos: datos ?? {},
                             onActualizar: cargarDatos,
                           ),
                         ),
@@ -174,7 +176,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ── Mis niveles ──
                   _BotonMenu(
                     icono: Icons.monitor_heart_outlined,
                     titulo: 'Mis niveles',
@@ -191,7 +192,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ── Mis fotos ──
                   _BotonMenu(
                     icono: Icons.photo_library_outlined,
                     titulo: 'Mis fotos del pie',
@@ -211,7 +211,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ✅ Mensajes con el doctor — con indicador de nuevos
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('usuarios')
@@ -221,13 +220,12 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         .where('leido', isEqualTo: false)
                         .snapshots(),
                     builder: (context, snapChat) {
-                      final noLeidos =
-                          snapChat.data?.docs.length ?? 0;
+                      final noLeidos = snapChat.data?.docs.length ?? 0;
 
                       return GestureDetector(
                         onTap: () {
-                          final nombre =
-                              datos?['nombre'] ?? 'Paciente';
+                          final nombre = datos?['nombre'] ?? 'Paciente';
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -248,8 +246,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: noLeidos > 0
-                                  ? const Color(0xFF6A93BE)
-                                      .withOpacity(0.5)
+                                  ? const Color(0xFF6A93BE).withOpacity(0.5)
                                   : const Color(0xFFE0E0E0),
                               width: noLeidos > 0 ? 1.5 : 1,
                             ),
@@ -261,8 +258,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                 height: 46,
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEEF3FB),
-                                  borderRadius:
-                                      BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
                                   Icons.chat_outlined,
@@ -273,8 +269,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'Mensajes con el doctor',
@@ -302,7 +297,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                   ],
                                 ),
                               ),
-                              // ✅ Contador o chevron
                               if (noLeidos > 0)
                                 Container(
                                   width: 22,
@@ -322,8 +316,11 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                                   ),
                                 )
                               else
-                                const Icon(Icons.chevron_right,
-                                    color: Colors.grey, size: 22),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.grey,
+                                  size: 22,
+                                ),
                             ],
                           ),
                         ),
@@ -333,27 +330,28 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ✅ Estado de cumplimiento
                   EstadoCumplimientoCard(uid: uid),
 
                   const SizedBox(height: 30),
 
-                  // ── Cerrar sesión ──
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton.icon(
                       onPressed: cerrarSesion,
-                      icon: const Icon(Icons.logout,
-                          color: Colors.redAccent),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.redAccent,
+                      ),
                       label: const Text(
                         'Cerrar sesión',
                         style: TextStyle(
-                            color: Colors.redAccent, fontSize: 15),
+                          color: Colors.redAccent,
+                          fontSize: 15,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                            color: Colors.redAccent),
+                        side: const BorderSide(color: Colors.redAccent),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -372,9 +370,8 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // BOTÓN MENÚ
-// ═══════════════════════════════════════════════════════════════════════════════
+
 class _BotonMenu extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -408,8 +405,11 @@ class _BotonMenu extends StatelessWidget {
                 color: const Color(0xFFEEF3FB),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icono,
-                  color: const Color(0xFF6A93BE), size: 22),
+              child: Icon(
+                icono,
+                color: const Color(0xFF6A93BE),
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -428,13 +428,18 @@ class _BotonMenu extends StatelessWidget {
                   Text(
                     subtitulo,
                     style: const TextStyle(
-                        fontSize: 12, color: Colors.grey),
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right,
-                color: Colors.grey, size: 22),
+            const Icon(
+              Icons.chevron_right,
+              color: Colors.grey,
+              size: 22,
+            ),
           ],
         ),
       ),
@@ -442,10 +447,9 @@ class _BotonMenu extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // INFORMACIÓN GENERAL
-// ═══════════════════════════════════════════════════════════════════════════════
-class InformacionGeneralScreen extends StatelessWidget {
+
+class InformacionGeneralScreen extends StatefulWidget {
   final Map<String, dynamic> datos;
   final VoidCallback onActualizar;
 
@@ -455,25 +459,84 @@ class InformacionGeneralScreen extends StatelessWidget {
     required this.onActualizar,
   });
 
+  @override
+  State<InformacionGeneralScreen> createState() =>
+      _InformacionGeneralScreenState();
+}
+
+class _InformacionGeneralScreenState extends State<InformacionGeneralScreen> {
+  late Map<String, dynamic> datos;
+
+  @override
+  void initState() {
+    super.initState();
+    datos = Map<String, dynamic>.from(widget.datos);
+  }
+
+  Future<void> _recargarDatos() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('usuarios')
+        .doc(uid)
+        .get();
+
+    if (doc.exists && mounted) {
+      setState(() {
+        datos = doc.data() ?? {};
+      });
+    }
+
+    widget.onActualizar();
+  }
+
   String _formatearFecha(DateTime fecha) {
     const meses = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre',
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
       'diciembre'
     ];
+
     return '${fecha.day} de ${meses[fecha.month - 1]} de ${fecha.year}';
+  }
+
+  String _fechaConsentimientoTexto() {
+    final fecha = datos['fechaConsentimiento'];
+
+    if (fecha == null) return 'No registrado';
+
+    if (fecha is Timestamp) {
+      return _formatearFecha(fecha.toDate());
+    }
+
+    return 'No registrado';
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool consentimientoAceptado =
+        datos['consentimientoAceptado'] == true;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Color(0xFF6A93BE)),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Color(0xFF6A93BE),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -486,18 +549,19 @@ class InformacionGeneralScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined,
-                color: Color(0xFF6A93BE)),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: Color(0xFF6A93BE),
+            ),
             onPressed: () async {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      EditarPerfilScreen(datos: datos),
+                  builder: (_) => EditarPerfilScreen(datos: datos),
                 ),
               );
-              onActualizar();
-              if (context.mounted) Navigator.pop(context);
+
+              await _recargarDatos();
             },
           ),
         ],
@@ -506,7 +570,6 @@ class InformacionGeneralScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-
             _Tarjeta(
               titulo: 'Datos personales',
               child: Column(
@@ -619,15 +682,19 @@ class InformacionGeneralScreen extends StatelessWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              color: Color(0xFF6A93BE), size: 16),
+                          Icon(
+                            Icons.info_outline,
+                            color: Color(0xFF6A93BE),
+                            size: 16,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Usas insulina. Se recomienda medir tu glucosa varias veces al día.',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF2C3E6B)),
+                                fontSize: 12,
+                                color: Color(0xFF2C3E6B),
+                              ),
                             ),
                           ),
                         ],
@@ -644,15 +711,19 @@ class InformacionGeneralScreen extends StatelessWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.check_circle_outline,
-                              color: Colors.green, size: 16),
+                          Icon(
+                            Icons.check_circle_outline,
+                            color: Colors.green,
+                            size: 16,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'No usas insulina. Recuerda registrar tu glucosa una vez al día.',
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF2C3E6B)),
+                                fontSize: 12,
+                                color: Color(0xFF2C3E6B),
+                              ),
                             ),
                           ),
                         ],
@@ -720,12 +791,13 @@ class InformacionGeneralScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          datos['contactoEmergenciaNombre'] ??
-                              'Sin registrar',
+                          datos['contactoEmergenciaNombre'] ?? 'Sin registrar',
                           style: const TextStyle(fontSize: 14),
                         ),
                         if (datos['contactoEmergenciaTel'] != null &&
-                            datos['contactoEmergenciaTel'].isNotEmpty)
+                            datos['contactoEmergenciaTel']
+                                .toString()
+                                .isNotEmpty)
                           Text(
                             datos['contactoEmergenciaTel'],
                             style: const TextStyle(
@@ -742,14 +814,15 @@ class InformacionGeneralScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
+            // PRIVACIDAD Y CONSENTIMIENTO
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFEEF3FB),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                    color:
-                        const Color(0xFF6A93BE).withOpacity(0.3)),
+                  color: const Color(0xFF6A93BE).withOpacity(0.3),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -770,35 +843,35 @@ class InformacionGeneralScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Privacidad y consentimiento',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C3E6B),
+                      const Expanded(
+                        child: Text(
+                          'Privacidad y consentimiento',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C3E6B),
+                          ),
                         ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 14),
+
                   _InfoFila(
-                    icono: datos['consentimientoAceptado'] == true
+                    icono: consentimientoAceptado
                         ? Icons.check_circle_rounded
                         : Icons.cancel_outlined,
                     etiqueta: 'Consentimiento aceptado',
-                    valor: datos['consentimientoAceptado'] == true
-                        ? 'Sí ✓'
-                        : 'No registrado',
+                    valor: consentimientoAceptado ? 'Sí ✓' : 'No registrado',
                   ),
+
                   _InfoFila(
                     icono: Icons.calendar_today_outlined,
                     etiqueta: 'Fecha de aceptación',
-                    valor: datos['fechaConsentimiento'] != null
-                        ? _formatearFecha(
-                            (datos['fechaConsentimiento'] as Timestamp)
-                                .toDate())
-                        : 'No registrado',
+                    valor: _fechaConsentimientoTexto(),
                   ),
+
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -807,18 +880,72 @@ class InformacionGeneralScreen extends StatelessWidget {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline,
-                            color: Color(0xFF6A93BE), size: 16),
+                        Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF6A93BE),
+                          size: 16,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Tus datos se usan únicamente para monitoreo clínico del pie diabético.',
                             style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF2C3E6B)),
+                              fontSize: 12,
+                              color: Color(0xFF2C3E6B),
+                            ),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final acepto = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ConsentimientoPerfilScreen(
+                              yaAceptado: consentimientoAceptado,
+                            ),
+                          ),
+                        );
+
+                        if (acepto == true) {
+                          await _recargarDatos();
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Consentimiento actualizado correctamente',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.article_outlined, size: 18),
+                      label: Text(
+                        consentimientoAceptado
+                            ? 'Ver / actualizar consentimiento'
+                            : 'Leer y aceptar consentimiento',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A93BE),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -833,13 +960,276 @@ class InformacionGeneralScreen extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// PANTALLA PARA LEER Y ACEPTAR CONSENTIMIENTO DESDE PERFIL
+
+class ConsentimientoPerfilScreen extends StatefulWidget {
+  final bool yaAceptado;
+
+  const ConsentimientoPerfilScreen({
+    super.key,
+    required this.yaAceptado,
+  });
+
+  @override
+  State<ConsentimientoPerfilScreen> createState() =>
+      _ConsentimientoPerfilScreenState();
+}
+
+class _ConsentimientoPerfilScreenState
+    extends State<ConsentimientoPerfilScreen> {
+  bool aceptado = false;
+  bool guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    aceptado = widget.yaAceptado;
+  }
+
+  Future<void> guardarConsentimiento() async {
+    if (!aceptado) return;
+
+    setState(() => guardando = true);
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('usuarios')
+            .doc(uid)
+            .set({
+          'consentimientoAceptado': true,
+          'fechaConsentimiento': Timestamp.now(),
+        }, SetOptions(merge: true));
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      debugPrint('Error al guardar consentimiento: $e');
+
+      if (mounted) {
+        setState(() => guardando = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo guardar el consentimiento'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const azul = Color(0xFF6A93BE);
+    const azulOscuro = Color(0xFF2C3E6B);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: azul),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        title: const Text(
+          'Consentimiento y privacidad',
+          style: TextStyle(
+            color: azulOscuro,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEEF3FB),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.privacy_tip_outlined,
+                  color: azul,
+                  size: 40,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Center(
+              child: Text(
+                'Aviso de privacidad',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: azulOscuro,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            const Center(
+              child: Text(
+                'Puedes leer nuevamente este aviso y actualizar tu aceptación',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            _CardSeccion(
+              icono: Icons.folder_open_outlined,
+              titulo: 'Datos que recopilamos',
+              contenido:
+                  'DMstride recopila información de salud como:\n\n'
+                  '• Fotografías del pie\n'
+                  '• Niveles de glucosa\n'
+                  '• Presión arterial\n'
+                  '• Historial médico\n'
+                  '• Información personal del paciente',
+            ),
+
+            const SizedBox(height: 14),
+
+            _CardSeccion(
+              icono: Icons.local_hospital_outlined,
+              titulo: 'Cómo usamos tus datos',
+              contenido:
+                  'La información recopilada será utilizada únicamente para:\n\n'
+                  '• Seguimiento clínico remoto del pie diabético\n'
+                  '• Revisión por el médico asignado dentro de la app\n'
+                  '• Generación de historial médico personal\n\n'
+                  'Tus datos NO serán compartidos con terceros ni utilizados con fines comerciales.',
+            ),
+
+            const SizedBox(height: 14),
+
+            _CardSeccion(
+              icono: Icons.verified_user_outlined,
+              titulo: 'Consentimiento informado',
+              contenido:
+                  'Al aceptar, confirmas que:\n\n'
+                  '• Has leído y comprendido este aviso de privacidad\n'
+                  '• Autorizas el uso de tus datos e imágenes para fines de monitoreo y seguimiento del pie diabético\n'
+                  '• Entiendes que puedes solicitar la eliminación de tus datos en cualquier momento contactando al administrador de la app',
+            ),
+
+            const SizedBox(height: 24),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: aceptado ? azul : const Color(0xFFE0E0E0),
+                  width: aceptado ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: aceptado,
+                    activeColor: azul,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    onChanged: (val) {
+                      setState(() => aceptado = val ?? false);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Acepto el consentimiento informado y el uso de mis datos de salud para monitoreo del pie diabético.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: azulOscuro,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed:
+                    aceptado && !guardando ? guardarConsentimiento : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: azul,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: guardando
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        widget.yaAceptado
+                            ? 'Actualizar aceptación'
+                            : 'Aceptar y guardar',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            const Center(
+              child: Text(
+                'Puedes volver a consultar este aviso desde tu información general.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // EDITAR PERFIL
-// ═══════════════════════════════════════════════════════════════════════════════
+
 class EditarPerfilScreen extends StatefulWidget {
   final Map<String, dynamic> datos;
 
-  const EditarPerfilScreen({super.key, required this.datos});
+  const EditarPerfilScreen({
+    super.key,
+    required this.datos,
+  });
 
   @override
   State<EditarPerfilScreen> createState() => _EditarPerfilScreenState();
@@ -864,12 +1254,12 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       TextEditingController(text: widget.datos['telefono'] ?? '');
   late final direccionController =
       TextEditingController(text: widget.datos['direccion'] ?? '');
-  late final fechaNacimientoController = TextEditingController(
-      text: widget.datos['fechaNacimiento'] ?? '');
-  late final pesoController = TextEditingController(
-      text: widget.datos['peso']?.toString() ?? '');
-  late final alturaController = TextEditingController(
-      text: widget.datos['altura']?.toString() ?? '');
+  late final fechaNacimientoController =
+      TextEditingController(text: widget.datos['fechaNacimiento'] ?? '');
+  late final pesoController =
+      TextEditingController(text: widget.datos['peso']?.toString() ?? '');
+  late final alturaController =
+      TextEditingController(text: widget.datos['altura']?.toString() ?? '');
   late final contactoNombreController = TextEditingController(
       text: widget.datos['contactoEmergenciaNombre'] ?? '');
   late final contactoTelController = TextEditingController(
@@ -899,8 +1289,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     if (usaInsulina == null || tipoTratamiento == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('Por favor completa la sección de tratamiento'),
+          content: Text('Por favor completa la sección de tratamiento'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -908,27 +1297,27 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     }
 
     setState(() => cargando = true);
+
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(uid)
-        .update({
+    await FirebaseFirestore.instance.collection('usuarios').doc(uid).update({
       'nombre': nombreController.text.trim(),
       'telefono': telefonoController.text.trim(),
       'direccion': direccionController.text.trim(),
       'fechaNacimiento': fechaNacimientoController.text.trim(),
       'peso': pesoController.text.trim(),
       'altura': alturaController.text.trim(),
-      'contactoEmergenciaNombre':
-          contactoNombreController.text.trim(),
+      'contactoEmergenciaNombre': contactoNombreController.text.trim(),
       'contactoEmergenciaTel': contactoTelController.text.trim(),
       'usaInsulina': usaInsulina,
       'tipoTratamiento': tipoTratamiento,
     });
 
-    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
     setState(() => cargando = false);
   }
 
@@ -940,6 +1329,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       lastDate: DateTime.now(),
       locale: const Locale('es', 'MX'),
     );
+
     if (fecha != null) {
       fechaNacimientoController.text =
           '${fecha.day}/${fecha.month}/${fecha.year}';
@@ -970,29 +1360,30 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             _seccion('Información personal', azulOscuro),
             const SizedBox(height: 12),
             _Campo(
-                label: 'Nombre completo',
-                icono: Icons.person_outline,
-                controller: nombreController),
+              label: 'Nombre completo',
+              icono: Icons.person_outline,
+              controller: nombreController,
+            ),
             const SizedBox(height: 12),
             _Campo(
-                label: 'Teléfono',
-                icono: Icons.phone_outlined,
-                controller: telefonoController,
-                teclado: TextInputType.phone),
+              label: 'Teléfono',
+              icono: Icons.phone_outlined,
+              controller: telefonoController,
+              teclado: TextInputType.phone,
+            ),
             const SizedBox(height: 12),
             _Campo(
-                label: 'Dirección',
-                icono: Icons.home_outlined,
-                controller: direccionController),
+              label: 'Dirección',
+              icono: Icons.home_outlined,
+              controller: direccionController,
+            ),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: seleccionarFecha,
@@ -1026,61 +1417,74 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
 
             _seccion('Tratamiento de diabetes', azulOscuro),
             const SizedBox(height: 12),
-            const Text('¿Usas insulina?',
-                style: TextStyle(
-                    fontSize: 14, color: Color(0xFF2C3E6B))),
+            const Text(
+              '¿Usas insulina?',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF2C3E6B),
+              ),
+            ),
             const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
                   child: RadioListTile<bool>(
-                    title: const Text('Sí',
-                        style: TextStyle(fontSize: 14)),
+                    title: const Text(
+                      'Sí',
+                      style: TextStyle(fontSize: 14),
+                    ),
                     value: true,
                     groupValue: usaInsulina,
                     activeColor: azul,
                     contentPadding: EdgeInsets.zero,
-                    onChanged: (val) =>
-                        setState(() => usaInsulina = val),
+                    onChanged: (val) => setState(() => usaInsulina = val),
                   ),
                 ),
                 Expanded(
                   child: RadioListTile<bool>(
-                    title: const Text('No',
-                        style: TextStyle(fontSize: 14)),
+                    title: const Text(
+                      'No',
+                      style: TextStyle(fontSize: 14),
+                    ),
                     value: false,
                     groupValue: usaInsulina,
                     activeColor: azul,
                     contentPadding: EdgeInsets.zero,
-                    onChanged: (val) =>
-                        setState(() => usaInsulina = val),
+                    onChanged: (val) => setState(() => usaInsulina = val),
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
+
             DropdownButtonFormField<String>(
               value: tipoTratamiento,
               decoration: InputDecoration(
                 hintText: 'Tipo de tratamiento',
-                prefixIcon: const Icon(Icons.medication_outlined,
-                    color: azul),
+                prefixIcon: const Icon(
+                  Icons.medication_outlined,
+                  color: azul,
+                ),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: opcionesTratamiento.map((opcion) {
                 return DropdownMenuItem(
                   value: opcion,
-                  child: Text(opcion,
-                      style: const TextStyle(fontSize: 14)),
+                  child: Text(
+                    opcion,
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 );
               }).toList(),
-              onChanged: (val) =>
-                  setState(() => tipoTratamiento = val),
+              onChanged: (val) => setState(() => tipoTratamiento = val),
             ),
 
             if (usaInsulina == true) ...[
@@ -1093,15 +1497,19 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline,
-                        color: Color(0xFF6A93BE), size: 18),
+                    Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF6A93BE),
+                      size: 18,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Usas insulina. Se recomienda medir tu glucosa varias veces al día.',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF2C3E6B)),
+                          fontSize: 12,
+                          color: Color(0xFF2C3E6B),
+                        ),
                       ),
                     ),
                   ],
@@ -1119,15 +1527,19 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        color: Colors.green, size: 18),
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'No usas insulina. Recuerda registrar tu glucosa una vez al día.',
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF2C3E6B)),
+                          fontSize: 12,
+                          color: Color(0xFF2C3E6B),
+                        ),
                       ),
                     ),
                   ],
@@ -1136,6 +1548,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
             ],
 
             const SizedBox(height: 24),
+
             _seccion('Contacto de emergencia', azulOscuro),
             const SizedBox(height: 12),
             _Campo(
@@ -1150,7 +1563,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
               controller: contactoTelController,
               teclado: TextInputType.phone,
             ),
+
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -1163,15 +1578,17 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                   ),
                 ),
                 child: cargando
-                    ? const CircularProgressIndicator(
-                        color: Colors.white)
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'Guardar cambios',
                         style: TextStyle(
-                            color: Colors.white, fontSize: 17),
+                          color: Colors.white,
+                          fontSize: 17,
+                        ),
                       ),
               ),
             ),
+
             const SizedBox(height: 30),
           ],
         ),
@@ -1183,14 +1600,16 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     return Text(
       titulo,
       style: TextStyle(
-          fontWeight: FontWeight.bold, color: color, fontSize: 15),
+        fontWeight: FontWeight.bold,
+        color: color,
+        fontSize: 15,
+      ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // WIDGETS AUXILIARES
-// ═══════════════════════════════════════════════════════════════════════════════
+
 class _Campo extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -1211,9 +1630,13 @@ class _Campo extends StatelessWidget {
       keyboardType: teclado,
       decoration: InputDecoration(
         hintText: label,
-        prefixIcon: Icon(icono, color: const Color(0xFF6A93BE)),
+        prefixIcon: Icon(
+          icono,
+          color: const Color(0xFF6A93BE),
+        ),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12)),
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
@@ -1223,7 +1646,10 @@ class _Tarjeta extends StatelessWidget {
   final String titulo;
   final Widget child;
 
-  const _Tarjeta({required this.titulo, required this.child});
+  const _Tarjeta({
+    required this.titulo,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1278,17 +1704,24 @@ class _InfoFila extends StatelessWidget {
               color: const Color(0xFFEEF3FB),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icono,
-                color: const Color(0xFF6A93BE), size: 18),
+            child: Icon(
+              icono,
+              color: const Color(0xFF6A93BE),
+              size: 18,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(etiqueta,
-                    style: const TextStyle(
-                        fontSize: 11, color: Colors.grey)),
+                Text(
+                  etiqueta,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   valor,
@@ -1299,6 +1732,72 @@ class _InfoFila extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardSeccion extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String contenido;
+
+  const _CardSeccion({
+    required this.icono,
+    required this.titulo,
+    required this.contenido,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icono,
+                  color: const Color(0xFF6A93BE),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2C3E6B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            contenido,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
+              height: 1.5,
             ),
           ),
         ],

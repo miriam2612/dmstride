@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'main.dart';
 import 'expedientepaciente.dart';
 import 'alertas_screen.dart';
-import 'alertas_service.dart';
 import 'chat_screen.dart';
 
 class DoctorScreen extends StatefulWidget {
@@ -519,9 +518,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // OPCIÓN FILTRO
-// ═══════════════════════════════════════════════════════════════════════════════
 class _OpcionFiltro extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -580,9 +577,7 @@ class _OpcionFiltro extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TARJETA RESUMEN
-// ═══════════════════════════════════════════════════════════════════════════════
 class _TarjetaResumen extends StatelessWidget {
   final String label;
   final int numero;
@@ -635,9 +630,7 @@ class _TarjetaResumen extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TARJETA PACIENTE ✅ con alertas + Chat con indicador de mensajes nuevos
-// ═══════════════════════════════════════════════════════════════════════════════
+// TARJETA PACIENTE con alertas + Chat con indicador de mensajes nuevos
 class _TarjetaPaciente extends StatelessWidget {
   final String nombre;
   final String correo;
@@ -888,7 +881,7 @@ class _TarjetaPaciente extends StatelessWidget {
                                       vertical: 10),
                             ),
                           )
-                        // ✅ Botón Chat con indicador de mensajes nuevos
+                        // Botón Chat con indicador de mensajes nuevos
                         : StreamBuilder<QuerySnapshot>(
                             stream: FirebaseFirestore.instance
                                 .collection('usuarios')

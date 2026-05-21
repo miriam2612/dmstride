@@ -20,10 +20,15 @@ class CapturaPieScreen extends StatefulWidget {
 
 class _CapturaPieScreenState extends State<CapturaPieScreen> {
   CameraController? _controller;
+
   bool isLoading = true;
   bool pieDetectado = false;
   int cuentaRegresiva = 0;
   bool tomandoFoto = false;
+  bool _camaraFrontal = false;
+  bool _analizando = false;
+
+  List<CameraDescription> _camaras = [];
 
   late ObjectDetector _objectDetector;
 
@@ -31,7 +36,7 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
   void initState() {
     super.initState();
     _inicializarDetector();
-    inicializarCamara();
+    inicializarCamara(frontal: false);
   }
 
   void _inicializarDetector() {
@@ -40,24 +45,132 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
       classifyObjects: true,
       multipleObjects: false,
     );
+
     _objectDetector = ObjectDetector(options: options);
   }
 
-  Future<void> inicializarCamara() async {
-    final cameras = await availableCameras();
-    _controller = CameraController(
-      cameras.first,
-      ResolutionPreset.medium,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.nv21,
-    );
-    await _controller!.initialize();
-    if (!mounted) return;
-    setState(() => isLoading = false);
-    _controller!.startImageStream((CameraImage image) async {
-      if (tomandoFoto) return;
-      await _analizarImagen(image);
-    });
+  Future<void> inicializarCamara({bool frontal = false}) async {
+    try {
+      if (mounted) {
+        setState(() => isLoading = true);
+      }
+
+      _camaras = await availableCameras();
+
+      if (_camaras.isEmpty) {
+        debugPrint('No se encontraron cámaras disponibles');
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+        return;
+      }
+
+      final camara = _camaras.firstWhere(
+        (c) => frontal
+            ? c.lensDirection == CameraLensDirection.front
+            : c.lensDirection == CameraLensDirection.back,
+        orElse: () => _camaras.first,
+      );
+
+      final oldController = _controller;
+
+      if (oldController != null) {
+        if (oldController.value.isStreamingImages) {
+          await oldController.stopImageStream();
+        }
+        await oldController.dispose();
+      }
+
+      _controller = CameraController(
+        camara,
+        ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
+      );
+
+      await _controller!.initialize();
+
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        pieDetectado = false;
+      });
+
+      await _iniciarStream();
+    } catch (e) {
+      debugPrint('Error al inicializar cámara: $e');
+
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _iniciarStream() async {
+    try {
+      if (_controller == null || !_controller!.value.isInitialized) return;
+      if (_controller!.value.isStreamingImages) return;
+
+      await _controller!.startImageStream((CameraImage image) async {
+        if (tomandoFoto || _analizando) return;
+
+        _analizando = true;
+        await _analizarImagen(image);
+        _analizando = false;
+      });
+    } catch (e) {
+      debugPrint('Error al iniciar stream: $e');
+    }
+  }
+
+  Future<void> _detenerStream() async {
+    try {
+      if (_controller != null &&
+          _controller!.value.isInitialized &&
+          _controller!.value.isStreamingImages) {
+        await _controller!.stopImageStream();
+      }
+    } catch (e) {
+      debugPrint('Error al detener stream: $e');
+    }
+  }
+
+  Future<void> _cambiarCamara() async {
+    try {
+      if (_camaras.isEmpty) {
+        _camaras = await availableCameras();
+      }
+
+      final nuevaCamaraFrontal = !_camaraFrontal;
+
+      final existeCamara = _camaras.any(
+        (c) => nuevaCamaraFrontal
+            ? c.lensDirection == CameraLensDirection.front
+            : c.lensDirection == CameraLensDirection.back,
+      );
+
+      if (!existeCamara) {
+        debugPrint('No existe esa cámara en este dispositivo');
+        return;
+      }
+
+      setState(() {
+        _camaraFrontal = nuevaCamaraFrontal;
+        isLoading = true;
+        pieDetectado = false;
+      });
+
+      await inicializarCamara(frontal: _camaraFrontal);
+    } catch (e) {
+      debugPrint('Error al cambiar cámara: $e');
+
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   Future<void> _analizarImagen(CameraImage image) async {
@@ -68,6 +181,7 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
       final objects = await _objectDetector.processImage(inputImage);
 
       bool hayObjeto = false;
+
       for (final obj in objects) {
         final rect = obj.boundingBox;
         final imgW = image.width.toDouble();
@@ -75,8 +189,10 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
 
         final anchoSuficiente = rect.width > imgW * 0.20;
         final altoSuficiente = rect.height > imgH * 0.30;
+
         final centroX = rect.center.dx;
         final centroY = rect.center.dy;
+
         final enCentroX = centroX > imgW * 0.25 && centroX < imgW * 0.75;
         final enCentroY = centroY > imgH * 0.20 && centroY < imgH * 0.80;
 
@@ -86,14 +202,8 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
         }
       }
 
-      if (hayObjeto && !pieDetectado && !tomandoFoto) {
-        setState(() => pieDetectado = true);
-        await _iniciarCuentaRegresiva();
-      } else if (!hayObjeto) {
-        setState(() {
-          pieDetectado = false;
-          cuentaRegresiva = 0;
-        });
+      if (mounted) {
+        setState(() => pieDetectado = hayObjeto);
       }
     } catch (e) {
       debugPrint('Error al analizar: $e');
@@ -101,41 +211,57 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
   }
 
   InputImage? _convertirImagen(CameraImage image) {
-    final camera = _controller!.description;
-    final rotation = InputImageRotationValue.fromRawValue(camera.sensorOrientation);
-    if (rotation == null) return null;
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    if (format == null) return null;
-    return InputImage.fromBytes(
-      bytes: image.planes[0].bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format,
-        bytesPerRow: image.planes[0].bytesPerRow,
-      ),
-    );
-  }
+    try {
+      if (_controller == null) return null;
 
-  Future<void> _iniciarCuentaRegresiva() async {
-    for (int i = 3; i >= 1; i--) {
-      if (!mounted || !pieDetectado) return;
-      setState(() => cuentaRegresiva = i);
-      await Future.delayed(const Duration(seconds: 1));
+      final camera = _controller!.description;
+
+      final rotation = InputImageRotationValue.fromRawValue(
+        camera.sensorOrientation,
+      );
+
+      if (rotation == null) return null;
+
+      final format = InputImageFormatValue.fromRawValue(image.format.raw);
+
+      if (format == null) return null;
+
+      return InputImage.fromBytes(
+        bytes: image.planes[0].bytes,
+        metadata: InputImageMetadata(
+          size: Size(image.width.toDouble(), image.height.toDouble()),
+          rotation: rotation,
+          format: format,
+          bytesPerRow: image.planes[0].bytesPerRow,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error al convertir imagen: $e');
+      return null;
     }
-    if (pieDetectado && mounted) await tomarFoto();
   }
 
   Future<void> tomarFoto() async {
     if (tomandoFoto) return;
-    setState(() {
-      tomandoFoto = true;
-      cuentaRegresiva = 0;
-    });
+
+    setState(() => tomandoFoto = true);
+
+    for (int i = 30; i >= 1; i--) {
+      if (!mounted) return;
+
+      setState(() => cuentaRegresiva = i);
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    if (!mounted) return;
+
+    setState(() => cuentaRegresiva = 0);
 
     try {
-      await _controller!.stopImageStream();
+      await _detenerStream();
+
       final image = await _controller!.takePicture();
+
       if (!mounted) return;
 
       Navigator.push(
@@ -148,34 +274,57 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
           ),
         ),
       ).then((_) async {
+        if (!mounted) return;
+
         setState(() {
           tomandoFoto = false;
           pieDetectado = false;
           cuentaRegresiva = 0;
         });
-        await _controller!.startImageStream((CameraImage image) async {
-          if (tomandoFoto) return;
-          await _analizarImagen(image);
-        });
+
+        await _iniciarStream();
       });
     } catch (e) {
       debugPrint('Error al tomar foto: $e');
-      setState(() => tomandoFoto = false);
+
+      if (mounted) {
+        setState(() {
+          tomandoFoto = false;
+          cuentaRegresiva = 0;
+        });
+      }
+
+      await _iniciarStream();
     }
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _cerrarCamara();
     _objectDetector.close();
     super.dispose();
+  }
+
+  Future<void> _cerrarCamara() async {
+    try {
+      if (_controller != null) {
+        if (_controller!.value.isStreamingImages) {
+          await _controller!.stopImageStream();
+        }
+        await _controller!.dispose();
+      }
+    } catch (e) {
+      debugPrint('Error al cerrar cámara: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     const colorPrincipal = Color(0xFF6A93BE);
 
-    if (isLoading || _controller == null || !_controller!.value.isInitialized) {
+    if (isLoading ||
+        _controller == null ||
+        !_controller!.value.isInitialized) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -187,44 +336,35 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          SizedBox.expand(child: CameraPreview(_controller!)),
+          SizedBox.expand(
+            child: CameraPreview(_controller!),
+          ),
 
-          // Imagen del pie con puntos clínicos de tu amiga
+          // Plantilla del pie con guía simple de centrado
           Positioned(
-            top: screenH * 0.15,
-            bottom: screenH * 0.18,
-            left: screenW * 0.25,
-            right: screenW * 0.25,
+            top: screenH * 0.17,
+            bottom: screenH * 0.20,
+            left: screenW * 0.22,
+            right: screenW * 0.22,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                ColorFiltered(
-                  colorFilter: ColorFilter.mode(
-                    pieDetectado
-                        ? Colors.green.withValues(alpha: 0.35)
-                        : Colors.blue.withValues(alpha: 0.20),
-                    BlendMode.srcATop,
-                  ),
+                Opacity(
+                  opacity: 0.95,
                   child: Image.asset(
                     widget.pieSide == FootSide.left
                         ? 'assets/images/pie_izq.png'
                         : 'assets/images/pie_der.png',
                     fit: BoxFit.contain,
-                    color: pieDetectado ? Colors.green : Colors.white,
+                    color: pieDetectado ? Colors.greenAccent : Colors.white,
                     colorBlendMode: BlendMode.modulate,
                   ),
                 ),
-                Image.asset(
-                  widget.pieSide == FootSide.left
-                      ? 'assets/images/pie_izq.png'
-                      : 'assets/images/pie_der.png',
-                  fit: BoxFit.contain,
-                  color: pieDetectado ? Colors.green : Colors.white,
-                  colorBlendMode: BlendMode.modulate,
-                ),
+
+                // Solo líneas guía, sin textos, sin números y sin leyenda
                 CustomPaint(
                   size: Size.infinite,
-                  painter: PuntosCiclicosPainter(widget.pieSide),
+                  painter: GuiaCentradoPainter(),
                 ),
               ],
             ),
@@ -238,19 +378,42 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
                   color: Colors.white,
                   fontSize: 100,
                   fontWeight: FontWeight.bold,
-                  shadows: [Shadow(blurRadius: 20, color: Colors.black)],
+                  shadows: [
+                    Shadow(
+                      blurRadius: 20,
+                      color: Colors.black,
+                    ),
+                  ],
                 ),
               ),
             ),
 
-          // Flecha de regresar
           Positioned(
             top: 44,
             left: 12,
             child: SafeArea(
               child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+
+          Positioned(
+            top: 44,
+            right: 12,
+            child: SafeArea(
+              child: IconButton(
+                icon: const Icon(
+                  Icons.cameraswitch_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                onPressed: tomandoFoto ? null : _cambiarCamara,
               ),
             ),
           ),
@@ -258,29 +421,42 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
           Positioned(
             top: 45,
             left: 60,
-            right: 20,
+            right: 60,
             child: Column(
               children: [
                 Text(
-                  widget.pieSide == FootSide.left ? 'Pie izquierdo' : 'Pie derecho',
+                  widget.pieSide == FootSide.left
+                      ? 'Pie izquierdo'
+                      : 'Pie derecho',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    shadows: [Shadow(blurRadius: 8, color: Colors.black)],
+                    shadows: [
+                      Shadow(
+                        blurRadius: 8,
+                        color: Colors.black,
+                      ),
+                    ],
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   pieDetectado
-                      ? '¡Pie detectado! Mantén quieto...'
+                      ? '¡Pie detectado! Presiona el botón cuando estés listo'
                       : 'Coloca el pie dentro del marco',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: pieDetectado ? Colors.greenAccent : Colors.white,
-                    fontSize: 17,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    shadows: const [Shadow(blurRadius: 8, color: Colors.black)],
+                    shadows: const [
+                      Shadow(
+                        blurRadius: 8,
+                        color: Colors.black,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -294,11 +470,28 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
             child: Center(
               child: ElevatedButton.icon(
                 onPressed: tomandoFoto ? null : tomarFoto,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Tomar foto'),
+                icon: tomandoFoto && cuentaRegresiva > 0
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.camera_alt),
+                label: Text(
+                  cuentaRegresiva > 0
+                      ? 'Tomando en $cuentaRegresiva...'
+                      : 'Tomar foto',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorPrincipal,
                   foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -309,155 +502,58 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
   }
 }
 
-// Painter de tu amiga con puntos clínicos y zonas anatómicas
-class PuntosCiclicosPainter extends CustomPainter {
-  final FootSide footSide;
-  PuntosCiclicosPainter(this.footSide);
-
+class GuiaCentradoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    final paintLinea = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
-      ..strokeWidth = 1.0
+    final paintLineaPrincipal = Paint()
+      ..color = Colors.white.withOpacity(0.65)
+      ..strokeWidth = 1.1
       ..style = PaintingStyle.stroke;
 
-    final paintVertical = Paint()
-      ..color = Colors.white.withValues(alpha: 0.45)
-      ..strokeWidth = 0.8
+    final paintLineaSuave = Paint()
+      ..color = Colors.white.withOpacity(0.35)
+      ..strokeWidth = 0.9
       ..style = PaintingStyle.stroke;
 
+    // Línea vertical central
     canvas.drawLine(
       Offset(w * 0.50, h * 0.10),
-      Offset(w * 0.50, h * 0.92),
-      paintVertical,
+      Offset(w * 0.50, h * 0.90),
+      paintLineaPrincipal,
     );
 
-    final zonas = [
-      {'y': 0.18, 'nombre': 'Dedos'},
-      {'y': 0.35, 'nombre': 'Metatarso'},
-      {'y': 0.58, 'nombre': 'Arco plantar'},
-      {'y': 0.78, 'nombre': 'Talón'},
-    ];
+    // Línea horizontal superior
+    canvas.drawLine(
+      Offset(w * 0.24, h * 0.25),
+      Offset(w * 0.76, h * 0.25),
+      paintLineaSuave,
+    );
 
-    for (final zona in zonas) {
-      final y = (zona['y'] as double) * h;
-      final nombre = zona['nombre'] as String;
+    // Línea horizontal central
+    canvas.drawLine(
+      Offset(w * 0.20, h * 0.50),
+      Offset(w * 0.80, h * 0.50),
+      paintLineaPrincipal,
+    );
 
-      canvas.drawLine(Offset(w * 0.15, y), Offset(w * 0.85, y), paintLinea);
-
-      final tp = TextPainter(
-        text: TextSpan(
-          text: nombre,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      tp.layout();
-
-      if (footSide == FootSide.left) {
-        tp.paint(canvas, Offset(w * 0.15, y - 12));
-      } else {
-        tp.paint(canvas, Offset(w * 0.85 - tp.width, y - 12));
-      }
-    }
-
-    final puntos = footSide == FootSide.left
-        ? [
-            [0.62, 0.14, Colors.red, '1'],
-            [0.38, 0.25, Colors.orange, '2'],
-            [0.65, 0.30, Colors.orange, '3'],
-            [0.50, 0.55, Colors.green, '4'],
-            [0.36, 0.68, Colors.orange, '5'],
-            [0.50, 0.88, Colors.purple, '6'],
-          ]
-        : [
-            [0.38, 0.14, Colors.red, '1'],
-            [0.62, 0.25, Colors.orange, '2'],
-            [0.35, 0.30, Colors.orange, '3'],
-            [0.50, 0.55, Colors.green, '4'],
-            [0.64, 0.68, Colors.orange, '5'],
-            [0.50, 0.88, Colors.purple, '6'],
-          ];
-
-    for (final p in puntos) {
-      final dx = (p[0] as double) * w;
-      final dy = (p[1] as double) * h;
-      final color = p[2] as Color;
-      final label = p[3] as String;
-
-      canvas.drawCircle(
-        Offset(dx, dy),
-        10,
-        Paint()..color = color..style = PaintingStyle.fill,
-      );
-      canvas.drawCircle(
-        Offset(dx, dy),
-        10,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-
-      final tp = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      tp.layout();
-      tp.paint(canvas, Offset(dx - tp.width / 2, dy - tp.height / 2));
-    }
-
-    final leyenda = ['🔴 Máximo', '🟠 Alto', '🟢 Rutina', '🟣 Talón'];
-
-    double anchoTotal = 0;
-    final tpTemps = <TextPainter>[];
-    for (final texto in leyenda) {
-      final tpTemp = TextPainter(
-        text: TextSpan(
-          text: texto,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 8,
-            shadows: const [Shadow(blurRadius: 4, color: Colors.black)],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      tpTemp.layout();
-      tpTemps.add(tpTemp);
-      anchoTotal += tpTemp.width + 8;
-    }
-
-    double leyendaX = (w - anchoTotal) / 2;
-    final leyendaY = h * 0.96;
-
-    for (final tpL in tpTemps) {
-      tpL.paint(canvas, Offset(leyendaX, leyendaY));
-      leyendaX += tpL.width + 8;
-    }
+    // Línea horizontal inferior
+    canvas.drawLine(
+      Offset(w * 0.24, h * 0.75),
+      Offset(w * 0.76, h * 0.75),
+      paintLineaSuave,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant PuntosCiclicosPainter oldDelegate) {
-    return oldDelegate.footSide != footSide;
+  bool shouldRepaint(covariant GuiaCentradoPainter oldDelegate) {
+    return false;
   }
 }
 
+// PREVIEW DE FOTO
 class PreviewFotoScreen extends StatefulWidget {
   final String imagePath;
   final FootSide footSide;
@@ -491,7 +587,8 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
         return;
       }
 
-      final base64Str = 'data:image/jpeg;base64,${base64Encode(bytesComprimidos)}';
+      final base64Str =
+          'data:image/jpeg;base64,${base64Encode(bytesComprimidos)}';
 
       await FirebaseFirestore.instance
           .collection('usuarios')
@@ -507,6 +604,7 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
       if (mounted) {
         Navigator.pop(context);
         Navigator.pop(context);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Foto guardada correctamente'),
@@ -519,15 +617,17 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
       }
     } catch (e) {
       debugPrint('Error al guardar: $e');
-      setState(() => guardando = false);
+
+      if (mounted) {
+        setState(() => guardando = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final footText = widget.footSide == FootSide.left
-        ? 'Pie izquierdo'
-        : 'Pie derecho';
+    final footText =
+        widget.footSide == FootSide.left ? 'Pie izquierdo' : 'Pie derecho';
 
     return Scaffold(
       appBar: AppBar(
@@ -535,7 +635,10 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
         backgroundColor: const Color(0xFF6A93BE),
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -544,12 +647,18 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
         child: Column(
           children: [
             Expanded(
-              child: Image.file(File(widget.imagePath), fit: BoxFit.contain),
+              child: Image.file(
+                File(widget.imagePath),
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
               footText,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
@@ -576,7 +685,9 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
                       foregroundColor: Colors.white,
                     ),
                     child: guardando
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          )
                         : const Text('Usar foto'),
                   ),
                 ),
@@ -589,12 +700,14 @@ class _PreviewFotoScreenState extends State<PreviewFotoScreen> {
   }
 }
 
+// CHECKLIST DE CALIDAD
 class QualityChecklist extends StatelessWidget {
   const QualityChecklist({super.key});
 
   @override
   Widget build(BuildContext context) {
     final items = [
+      'Revisa que cumpla con los siguientes puntos:',
       'Se observa todo el pie',
       'La imagen no está borrosa',
       'No hay sombras fuertes',
@@ -615,7 +728,9 @@ class QualityChecklist extends StatelessWidget {
                 size: 19,
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text(item)),
+              Expanded(
+                child: Text(item),
+              ),
             ],
           ),
         );

@@ -68,7 +68,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Ícono de privacidad ──
+            // Ícono de privacidad 
             Center(
               child: Container(
                 width: 80,
@@ -109,7 +109,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
 
             const SizedBox(height: 24),
 
-            // ── Card: Qué datos recopilamos ──
+            // Card: Qué datos recopilamos
             _CardSeccion(
               icono: Icons.folder_open_outlined,
               titulo: 'Datos que recopilamos',
@@ -124,7 +124,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
 
             const SizedBox(height: 14),
 
-            // ── Card: Cómo usamos los datos ──
+            // Card: Cómo usamos los datos 
             _CardSeccion(
               icono: Icons.local_hospital_outlined,
               titulo: 'Cómo usamos tus datos',
@@ -139,7 +139,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
 
             const SizedBox(height: 14),
 
-            // ── Card: Consentimiento ──
+            // Card: Consentimiento 
             _CardSeccion(
               icono: Icons.verified_user_outlined,
               titulo: 'Consentimiento informado',
@@ -155,7 +155,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
 
             const SizedBox(height: 24),
 
-            // ── Checkbox de aceptación ──
+            // Checkbox de aceptación
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -197,7 +197,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
 
             const SizedBox(height: 24),
 
-            // ── Botón Continuar ──
+            // Botón Continuar
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -242,7 +242,7 @@ class _ConsentimientoScreenState extends State<ConsentimientoScreen> {
   }
 }
 
-// ── Widget auxiliar para cada sección ──
+// Widget auxiliar para cada sección
 class _CardSeccion extends StatelessWidget {
   final IconData icono;
   final String titulo;

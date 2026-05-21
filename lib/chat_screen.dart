@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatDoctorScreen extends StatefulWidget {
-  final String pacienteId;      // uid del paciente
-  final String nombrePaciente;  // nombre del paciente
-  final String miUid;           // uid del usuario actual
-  final String miNombre;        // nombre del usuario actual
-  final String miRol;           // "paciente" o "doctor"
+  final String pacienteId;
+  final String nombrePaciente;
+  final String miUid;
+  final String miNombre;
+  final String miRol;
 
   const ChatDoctorScreen({
     super.key,
@@ -26,7 +26,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
   final ScrollController _scrollController = ScrollController();
   bool enviando = false;
 
-  // ✅ Todos los mensajes van en usuarios/{pacienteId}/chatDoctor
   CollectionReference get _chat => FirebaseFirestore.instance
       .collection('usuarios')
       .doc(widget.pacienteId)
@@ -39,7 +38,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
     super.dispose();
   }
 
-  // ── Enviar mensaje ──────────────────────────────────────────────────────────
   Future<void> _enviarMensaje() async {
     final texto = _mensajeController.text.trim();
     if (texto.isEmpty || enviando) return;
@@ -48,15 +46,15 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
     _mensajeController.clear();
 
     try {
+      // Usar hora local en lugar de serverTimestamp
       await _chat.add({
         'texto': texto,
-        'fechaHora': FieldValue.serverTimestamp(),
+        'fechaHora': Timestamp.fromDate(DateTime.now()),
         'enviadoPor': widget.miRol,
         'remitenteNombre': widget.miNombre,
         'leido': false,
       });
 
-      // Scroll al final después de enviar
       await Future.delayed(const Duration(milliseconds: 300));
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -72,7 +70,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
     }
   }
 
-  // ── Fecha legible ───────────────────────────────────────────────────────────
   String _hora(DateTime fecha) {
     final h = fecha.hour.toString().padLeft(2, '0');
     final m = fecha.minute.toString().padLeft(2, '0');
@@ -92,7 +89,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
     const azul = Color(0xFF6A93BE);
     const azulOscuro = Color(0xFF2C3E6B);
 
-    // Título según el rol
     final titulo = widget.miRol == 'doctor'
         ? 'Chat con ${widget.nombrePaciente}'
         : 'Mensajes con el doctor';
@@ -130,14 +126,14 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
       body: Column(
         children: [
 
-          // ── Lista de mensajes ──
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _chat
                   .orderBy('fechaHora', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: azul),
                   );
@@ -171,18 +167,17 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                   );
                 }
 
-                // ✅ Marcar como leídos los mensajes del otro lado
+                // Marcar como leídos
                 for (final doc in mensajes) {
                   final data = doc.data() as Map<String, dynamic>;
                   final enviadoPor = data['enviadoPor'] ?? '';
                   final leido = data['leido'] ?? true;
-                  // Solo marcar los mensajes que NO envié yo y que no están leídos
                   if (enviadoPor != widget.miRol && !leido) {
                     doc.reference.update({'leido': true});
                   }
                 }
 
-                // Scroll al final al cargar
+                // Scroll al final
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scrollController.hasClients) {
                     _scrollController.jumpTo(
@@ -200,25 +195,29 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                         mensajes[i].data() as Map<String, dynamic>;
                     final esMio =
                         data['enviadoPor'] == widget.miRol;
-                    final fecha = data['fechaHora'] != null
-                        ? (data['fechaHora'] as dynamic).toDate()
-                        : DateTime.now();
-                    final texto = data['texto'] ?? '';
-                    final nombre =
-                        data['remitenteNombre'] ?? '';
 
-                    // Mostrar fecha si es el primer mensaje
-                    // o si cambió el día
+                    // Convertir a hora local
+                    final fecha = data['fechaHora'] != null
+                        ? (data['fechaHora'] as dynamic)
+                            .toDate()
+                            .toLocal()
+                        : DateTime.now();
+
+                    final texto = data['texto'] ?? '';
+                    final nombre = data['remitenteNombre'] ?? '';
+
                     bool mostrarFecha = false;
                     if (i == 0) {
                       mostrarFecha = true;
                     } else {
                       final anterior = mensajes[i - 1].data()
                           as Map<String, dynamic>;
+                      // También toLocal() en fecha anterior
                       final fechaAnterior =
                           anterior['fechaHora'] != null
                               ? (anterior['fechaHora'] as dynamic)
                                   .toDate()
+                                  .toLocal()
                               : DateTime.now();
                       if (fecha.day != fechaAnterior.day ||
                           fecha.month != fechaAnterior.month) {
@@ -228,7 +227,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
 
                     return Column(
                       children: [
-                        // ── Separador de fecha ──
                         if (mostrarFecha)
                           Padding(
                             padding: const EdgeInsets.symmetric(
@@ -251,7 +249,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                             ),
                           ),
 
-                        // ── Burbuja de mensaje ──
                         Align(
                           alignment: esMio
                               ? Alignment.centerRight
@@ -261,7 +258,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                                 ? CrossAxisAlignment.end
                                 : CrossAxisAlignment.start,
                             children: [
-                              // Nombre del remitente
                               if (!esMio)
                                 Padding(
                                   padding: const EdgeInsets.only(
@@ -276,25 +272,20 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                                   ),
                                 ),
 
-                              // Burbuja
                               Container(
                                 constraints: BoxConstraints(
-                                  maxWidth: MediaQuery.of(context)
-                                          .size
-                                          .width *
-                                      0.72,
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width *
+                                          0.72,
                                 ),
-                                margin: const EdgeInsets.only(
-                                    bottom: 4),
+                                margin:
+                                    const EdgeInsets.only(bottom: 4),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: esMio
-                                      ? azul
-                                      : Colors.white,
+                                  color: esMio ? azul : Colors.white,
                                   borderRadius: BorderRadius.only(
-                                    topLeft:
-                                        const Radius.circular(16),
+                                    topLeft: const Radius.circular(16),
                                     topRight:
                                         const Radius.circular(16),
                                     bottomLeft: Radius.circular(
@@ -305,8 +296,8 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                                   border: esMio
                                       ? null
                                       : Border.all(
-                                          color: const Color(
-                                              0xFFE0E0E0)),
+                                          color:
+                                              const Color(0xFFE0E0E0)),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black
@@ -328,12 +319,10 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                                 ),
                               ),
 
-                              // Hora
+                              // Hora en local
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    bottom: 8,
-                                    left: 4,
-                                    right: 4),
+                                    bottom: 8, left: 4, right: 4),
                                 child: Text(
                                   _hora(fecha),
                                   style: TextStyle(
@@ -353,7 +342,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
             ),
           ),
 
-          // ── Campo de texto para enviar ──
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
@@ -382,7 +370,6 @@ class _ChatDoctorScreenState extends State<ChatDoctorScreen> {
                 ),
                 const SizedBox(width: 10),
 
-                // Botón enviar
                 GestureDetector(
                   onTap: enviando ? null : _enviarMensaje,
                   child: Container(

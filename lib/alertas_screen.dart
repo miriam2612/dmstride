@@ -93,7 +93,7 @@ class AlertasScreen extends StatelessWidget {
               final nivel = data['nivel'] ?? 'moderado';
               final leida = data['leida'] ?? false;
               final fecha = data['fechaHora'] != null
-                  ? (data['fechaHora'] as Timestamp).toDate()
+                  ? (data['fechaHora'] as Timestamp).toDate().toLocal()
                   : DateTime.now();
 
               final color = nivel == 'alto'

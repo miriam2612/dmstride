@@ -228,7 +228,7 @@ class _ExpedientePacienteScreenState
 
                   const SizedBox(height: 24),
 
-                  // ── Resumen rápido del paciente ──
+                  // Resumen rápido del paciente
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -291,12 +291,12 @@ class _ExpedientePacienteScreenState
 
                   const SizedBox(height: 16),
 
-                  // ✅ Semáforo de riesgo
+                  // Semáforo de riesgo
                   const _SemaforoRiesgo(),
 
                   const SizedBox(height: 16),
 
-                  // ✅ Estado de cumplimiento
+                  // Estado de cumplimiento
                   EstadoCumplimientoCard(uid: widget.uid),
 
                   const SizedBox(height: 30),
@@ -322,9 +322,7 @@ class _ExpedientePacienteScreenState
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // BOTÓN MENÚ
-// ═══════════════════════════════════════════════════════════════════════════════
 class _BotonMenu extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -390,9 +388,7 @@ class _BotonMenu extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SEMÁFORO DE RIESGO ✅
-// ═══════════════════════════════════════════════════════════════════════════════
+// SEMÁFORO DE RIESGO
 class _SemaforoRiesgo extends StatelessWidget {
   const _SemaforoRiesgo();
 
@@ -453,9 +449,7 @@ class _SemaforoRiesgo extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // FILA SEMÁFORO
-// ═══════════════════════════════════════════════════════════════════════════════
 class _FilaSemaforo extends StatelessWidget {
   final Color color;
   final String nivel;
@@ -528,9 +522,7 @@ class _FilaSemaforo extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // EDITAR EXPEDIENTE
-// ═══════════════════════════════════════════════════════════════════════════════
 class EditarExpedienteScreen extends StatefulWidget {
   final String uid;
   final Map<String, dynamic> datos;
@@ -889,9 +881,7 @@ class _EditarExpedienteScreenState
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // BOTÓN RIESGO
-// ═══════════════════════════════════════════════════════════════════════════════
 class _BotonRiesgo extends StatelessWidget {
   final String label;
   final Color color;
@@ -932,9 +922,7 @@ class _BotonRiesgo extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // CAMPO DE TEXTO
-// ═══════════════════════════════════════════════════════════════════════════════
 class _Campo extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -960,9 +948,7 @@ class _Campo extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // INFO FILA
-// ═══════════════════════════════════════════════════════════════════════════════
 class _InfoFila extends StatelessWidget {
   final IconData icono;
   final String etiqueta;
