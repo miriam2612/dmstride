@@ -246,7 +246,7 @@ class _CapturaPieScreenState extends State<CapturaPieScreen> {
 
     setState(() => tomandoFoto = true);
 
-    for (int i = 30; i >= 1; i--) {
+    for (int i = 60; i >= 1; i--) {
       if (!mounted) return;
 
       setState(() => cuentaRegresiva = i);

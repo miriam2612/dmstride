@@ -16,11 +16,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String tipoUsuario = 'paciente';
   bool cargando = false;
 
+  String? medicoSeleccionadoId;
+  String? medicoSeleccionadoNombre;
+
   final nombreController = TextEditingController();
   final telefonoController = TextEditingController();
   final correoController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmarController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -38,6 +46,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         correoController.text.isEmpty ||
         passwordController.text.isEmpty) {
       _mostrarMensaje('Por favor llena todos los campos');
+      return;
+    }
+
+    if (tipoUsuario == 'paciente' && medicoSeleccionadoId == null) {
+      _mostrarMensaje('Por favor selecciona tu médico');
       return;
     }
 
@@ -60,30 +73,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: passwordController.text.trim(),
       );
 
-      await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(credencial.user!.uid)
-          .set({
+      final Map<String, dynamic> datosUsuario = {
         'nombre': nombreController.text.trim(),
         'telefono': telefonoController.text.trim(),
         'correo': correoController.text.trim(),
         'tipo': tipoUsuario,
         'fechaRegistro': DateTime.now(),
-        // Inicializar consentimiento como false hasta que lo acepte
         'consentimientoAceptado': false,
         'fechaConsentimiento': null,
-      });
+      };
+
+      // Si la cuenta es de paciente, se asigna al médico seleccionado.
+      // Si la cuenta es de médico, no necesita estos campos.
+      if (tipoUsuario == 'paciente') {
+        datosUsuario['medicoId'] = medicoSeleccionadoId;
+        datosUsuario['medicoNombre'] = medicoSeleccionadoNombre;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(credencial.user!.uid)
+          .set(datosUsuario);
 
       if (mounted) {
         if (tipoUsuario == 'doctor') {
-          // Doctores van directo sin consentimiento
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const DoctorScreen()),
             (route) => false,
           );
         } else {
-          // Pacientes pasan por consentimiento antes de entrar
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
@@ -138,7 +157,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 25),
         child: Column(
           children: [
-
             const SizedBox(height: 10),
 
             const Text(
@@ -153,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
 
             const Text(
-              '¿Eres paciente o doctor?',
+              '¿Eres paciente o médico?',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
 
@@ -162,6 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // Selector de tipo
             Row(
               children: [
+                // PACIENTE
                 Expanded(
                   child: GestureDetector(
                     onTap: () => setState(() => tipoUsuario = 'paciente'),
@@ -198,9 +217,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(width: 12),
 
+                // MÉDICO
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => tipoUsuario = 'doctor'),
+                    onTap: () => setState(() {
+                      tipoUsuario = 'doctor';
+                      medicoSeleccionadoId = null;
+                      medicoSeleccionadoNombre = null;
+                    }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
@@ -218,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Doctor',
+                            'Médico',
                             style: TextStyle(
                               color: tipoUsuario == 'doctor'
                                   ? Colors.white
@@ -235,6 +259,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
 
             const SizedBox(height: 24),
+
+            if (tipoUsuario == 'paciente') ...[
+              _selectorMedico(),
+              const SizedBox(height: 14),
+            ],
 
             _campo(
               controller: nombreController,
@@ -296,6 +325,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _selectorMedico() {
+    const azul = Color(0xFF6A93BE);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('usuarios')
+          .where('tipo', isEqualTo: 'doctor')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 56,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const CircularProgressIndicator(color: azul),
+          );
+        }
+
+        final medicos = snapshot.data?.docs ?? [];
+
+        if (medicos.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF5F5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFED7D7)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.redAccent, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Aún no hay médicos registrados. Primero crea una cuenta de médico.',
+                    style: TextStyle(fontSize: 12.5, color: Colors.redAccent),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return DropdownButtonFormField<String>(
+          value: medicoSeleccionadoId,
+          decoration: InputDecoration(
+            labelText: 'Selecciona tu médico',
+            hintText: 'Médico que te atiende',
+            prefixIcon: const Icon(Icons.medical_services_outlined, color: azul),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          items: medicos.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final nombre = data['nombre'] ?? 'Médico sin nombre';
+            return DropdownMenuItem<String>(
+              value: doc.id,
+              child: Text(nombre),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value == null) return;
+
+            final doc = medicos.firstWhere((medico) => medico.id == value);
+            final data = doc.data() as Map<String, dynamic>;
+
+            setState(() {
+              medicoSeleccionadoId = doc.id;
+              medicoSeleccionadoNombre = data['nombre'] ?? 'Médico';
+            });
+          },
+        );
+      },
     );
   }
 
