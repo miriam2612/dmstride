@@ -159,7 +159,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
               child: Column(
                 children: [
 
-                  // ── CARD DE RIESGO Y PRÓXIMA CITA ──
+                  // CARD DE RIESGO Y PRÓXIMA CITA
                   StreamBuilder<DocumentSnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('usuarios')
@@ -174,25 +174,23 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       final proximaCita = data?['proximaCita'];
                       final notasMedico = data?['notasMedico'] as String?;
 
-                      if (riesgo == null && proximaCita == null &&
+                      if (riesgo == null &&
+                          proximaCita == null &&
                           (notasMedico == null || notasMedico.isEmpty)) {
                         return const SizedBox();
                       }
 
                       return Column(
                         children: [
-                          // Card de riesgo
                           if (riesgo != null)
                             _CardRiesgoPaciente(riesgo: riesgo),
 
-                          // Card de próxima cita
                           if (proximaCita != null) ...[
                             const SizedBox(height: 14),
                             _CardProximaCita(
                                 proximaCita: proximaCita as Timestamp),
                           ],
 
-                          // Card de notas del médico
                           if (notasMedico != null &&
                               notasMedico.isNotEmpty) ...[
                             const SizedBox(height: 14),
@@ -205,7 +203,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                     },
                   ),
 
-                  // ── MENÚ ──
+                  // MENÚ
                   _BotonMenu(
                     icono: Icons.person_outline,
                     titulo: 'Mi información general',
@@ -260,7 +258,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ── CHAT CON INDICADOR ──
+                  // CHAT CON INDICADOR
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('usuarios')
@@ -409,29 +407,15 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
   }
 }
 
-// ─── CARD DE RIESGO PARA EL PACIENTE ─────────────────────────────────────────
+// ─── CARD DE RIESGO PARA EL PACIENTE (sin etiqueta de nivel) ─────────────────
 
 class _CardRiesgoPaciente extends StatelessWidget {
   final String riesgo;
   const _CardRiesgoPaciente({required this.riesgo});
 
-  Color get color {
-    if (riesgo == 'maximo') return Colors.redAccent;
-    if (riesgo == 'alto') return Colors.orange;
-    if (riesgo == 'moderado') return Colors.amber.shade700;
-    return Colors.green;
-  }
-
-  String get etiqueta {
-    if (riesgo == 'maximo') return 'Máximo';
-    if (riesgo == 'alto') return 'Alto';
-    if (riesgo == 'moderado') return 'Moderado';
-    return 'Bajo';
-  }
-
   String get mensaje {
     if (riesgo == 'maximo') {
-      return 'Tu médico determinó que requieres atención prioritaria. Sigue sus indicaciones y asiste a tus citas.';
+      return 'Sigue las indicaciones de tu médico y asiste a tus citas. Tu constancia hace la diferencia.';
     }
     if (riesgo == 'alto') {
       return 'Tu pie necesita cuidado especial. Sigue las indicaciones de tu médico y registra tus niveles con regularidad.';
@@ -443,10 +427,8 @@ class _CardRiesgoPaciente extends StatelessWidget {
   }
 
   IconData get icono {
-    if (riesgo == 'maximo') return Icons.warning_rounded;
-    if (riesgo == 'alto') return Icons.error_outline_rounded;
-    if (riesgo == 'moderado') return Icons.info_outline_rounded;
-    return Icons.check_circle_outline_rounded;
+    if (riesgo == 'bajo') return Icons.check_circle_outline_rounded;
+    return Icons.favorite_rounded;
   }
 
   @override
@@ -454,9 +436,10 @@ class _CardRiesgoPaciente extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.07),
+        color: const Color(0xFFEEF3FB),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(
+            color: const Color(0xFF6A93BE).withOpacity(0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,39 +448,29 @@ class _CardRiesgoPaciente extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: Icon(icono, color: color, size: 24),
+            child: Icon(icono, color: const Color(0xFF6A93BE), size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Clasificación de riesgo',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Riesgo $etiqueta',
+                const Text(
+                  'Recomendación de tu médico',
                   style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+                    fontSize: 12,
+                    color: Color(0xFF6A93BE),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   mensaje,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 13,
                     color: Colors.grey.shade700,
                     height: 1.4,
                   ),
@@ -729,8 +702,8 @@ class _BotonMenu extends StatelessWidget {
                           color: Color(0xFF2C3E6B))),
                   const SizedBox(height: 2),
                   Text(subtitulo,
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey)),
                 ],
               ),
             ),
@@ -802,28 +775,10 @@ class _InformacionGeneralScreenState
     return 'No registrado';
   }
 
-  // Colores y etiquetas de riesgo para mostrar en info general
-  String _etiquetaRiesgo(String? r) {
-    if (r == 'maximo') return 'Máximo';
-    if (r == 'alto') return 'Alto';
-    if (r == 'moderado') return 'Moderado';
-    if (r == 'bajo') return 'Bajo';
-    return 'Sin evaluar';
-  }
-
-  Color _colorRiesgo(String? r) {
-    if (r == 'maximo') return Colors.redAccent;
-    if (r == 'alto') return Colors.orange;
-    if (r == 'moderado') return Colors.amber.shade700;
-    if (r == 'bajo') return Colors.green;
-    return Colors.grey;
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool consentimientoAceptado =
         datos['consentimientoAceptado'] == true;
-    final riesgo = datos['riesgoTabla'] as String?;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -861,59 +816,6 @@ class _InformacionGeneralScreenState
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-
-            // Card de riesgo si ya fue evaluado
-            if (riesgo != null) ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _colorRiesgo(riesgo).withOpacity(0.07),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: _colorRiesgo(riesgo).withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(
-                        color: _colorRiesgo(riesgo).withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 16, height: 16,
-                          decoration: BoxDecoration(
-                            color: _colorRiesgo(riesgo),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Tu clasificación de riesgo',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey)),
-                          Text(
-                            'Riesgo ${_etiquetaRiesgo(riesgo)}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _colorRiesgo(riesgo),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
 
             _Tarjeta(
               titulo: 'Datos personales',
@@ -1131,14 +1033,11 @@ class _InformacionGeneralScreenState
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          datos['contactoEmergenciaNombre'] ??
-                              'Sin registrar',
+                          datos['contactoEmergenciaNombre'] ?? 'Sin registrar',
                           style: const TextStyle(fontSize: 14),
                         ),
                         if (datos['contactoEmergenciaTel'] != null &&
-                            datos['contactoEmergenciaTel']
-                                .toString()
-                                .isNotEmpty)
+                            datos['contactoEmergenciaTel'].toString().isNotEmpty)
                           Text(
                             datos['contactoEmergenciaTel'],
                             style: const TextStyle(
@@ -1168,7 +1067,8 @@ class _InformacionGeneralScreenState
                   Row(
                     children: [
                       Container(
-                        width: 36, height: 36,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
@@ -1195,8 +1095,7 @@ class _InformacionGeneralScreenState
                         ? Icons.check_circle_rounded
                         : Icons.cancel_outlined,
                     etiqueta: 'Consentimiento aceptado',
-                    valor:
-                        consentimientoAceptado ? 'Sí ✓' : 'No registrado',
+                    valor: consentimientoAceptado ? 'Sí ✓' : 'No registrado',
                   ),
                   _InfoFila(
                     icono: Icons.calendar_today_outlined,
@@ -1358,7 +1257,8 @@ class _ConsentimientoPerfilScreenState
           children: [
             Center(
               child: Container(
-                width: 80, height: 80,
+                width: 80,
+                height: 80,
                 decoration: const BoxDecoration(
                     color: Color(0xFFEEF3FB), shape: BoxShape.circle),
                 child: const Icon(Icons.privacy_tip_outlined,
@@ -1615,8 +1515,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 color: azul, fontWeight: FontWeight.bold, fontSize: 18)),
       ),
       body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1635,12 +1534,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _Campo(
-              label: 'Edad',
-              icono: Icons.person_rounded,
-              controller: edadController,
-              teclado: TextInputType.number,
-            ),
+            _Campo(label: 'Edad', icono: Icons.person_rounded, controller: edadController, teclado: TextInputType.number),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -1830,7 +1724,9 @@ class _Tarjeta extends StatelessWidget {
         children: [
           Text(titulo,
               style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2C3E6B))),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E6B))),
           const SizedBox(height: 14),
           child,
         ],
@@ -1843,7 +1739,8 @@ class _InfoFila extends StatelessWidget {
   final IconData icono;
   final String etiqueta;
   final String valor;
-  const _InfoFila({required this.icono, required this.etiqueta, required this.valor});
+  const _InfoFila(
+      {required this.icono, required this.etiqueta, required this.valor});
 
   @override
   Widget build(BuildContext context) {
@@ -1853,7 +1750,8 @@ class _InfoFila extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 36, height: 36,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: const Color(0xFFEEF3FB),
               borderRadius: BorderRadius.circular(10),
@@ -1865,11 +1763,15 @@ class _InfoFila extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(etiqueta, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(etiqueta,
+                    style:
+                        const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 2),
                 Text(valor,
                     style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF2C3E6B))),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF2C3E6B))),
               ],
             ),
           ),
@@ -1883,7 +1785,8 @@ class _CardSeccion extends StatelessWidget {
   final IconData icono;
   final String titulo;
   final String contenido;
-  const _CardSeccion({required this.icono, required this.titulo, required this.contenido});
+  const _CardSeccion(
+      {required this.icono, required this.titulo, required this.contenido});
 
   @override
   Widget build(BuildContext context) {
@@ -1900,7 +1803,8 @@ class _CardSeccion extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                     color: const Color(0xFFEEF3FB),
                     borderRadius: BorderRadius.circular(10)),
@@ -1910,13 +1814,16 @@ class _CardSeccion extends StatelessWidget {
               Expanded(
                 child: Text(titulo,
                     style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C3E6B))),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E6B))),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(contenido,
-              style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.5)),
+              style: const TextStyle(
+                  fontSize: 13, color: Colors.black87, height: 1.5)),
         ],
       ),
     );

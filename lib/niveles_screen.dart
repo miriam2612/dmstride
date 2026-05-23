@@ -105,13 +105,6 @@ class _NivelesScreenState extends State<NivelesScreen>
     return 'peligro';
   }
 
-  String _mensajeGlucosa(double v) {
-    if (v < 70) return 'Glucosa muy baja — come algo dulce';
-    if (v <= 130) return 'Glucosa bien controlada';
-    if (v <= 180) return 'Glucosa elevada — vigila tu alimentación';
-    return 'Glucosa muy alta — consulta a tu médico';
-  }
-
   Color _colorGlucosa(double v) {
     if (v < 70) return Colors.redAccent;
     if (v <= 130) return Colors.green;
@@ -176,7 +169,10 @@ class _NivelesScreenState extends State<NivelesScreen>
       }
       if (mounted) {
         glucosaController.clear();
-        setState(() { momentoMedicion = null; semanaSeleccionada = DateTime.now(); });
+        setState(() {
+          momentoMedicion = null;
+          semanaSeleccionada = DateTime.now();
+        });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: const Text('Glucosa guardada correctamente'),
           behavior: SnackBarBehavior.floating,
@@ -301,8 +297,8 @@ class _NivelesScreenState extends State<NivelesScreen>
             glucosaController: glucosaController, momentoMedicion: momentoMedicion,
             momentos: momentos, guardando: guardandoGlucosa,
             onMomentoChanged: (val) => setState(() => momentoMedicion = val),
-            onGuardar: guardarGlucosa, colorGlucosa: _colorGlucosa,
-            mensajeGlucosa: _mensajeGlucosa, fechaLegible: _fechaLegible,
+            onGuardar: guardarGlucosa,
+            fechaLegible: _fechaLegible,
             inicioSemana: inicioSemana, finSemana: finSemana,
             inicioSemanaSiguiente: inicioSemanaSiguiente,
             textoSemana: _textoSemana(semanaSeleccionada),
@@ -422,7 +418,7 @@ class _TabMolestias extends StatefulWidget {
 class _TabMolestiaState extends State<_TabMolestias> {
   final notaController = TextEditingController();
   String? pieAfectado;
-  List<String> tiposMolestia = [];   // ← MULTI-SELECCIÓN
+  List<String> tiposMolestia = [];
   int nivelDolor = 0;
   bool guardando = false;
 
@@ -452,7 +448,7 @@ class _TabMolestiaState extends State<_TabMolestias> {
           .collection('molestiaRegistros')
           .add({
         'pie': pieAfectado,
-        'tipo': tiposMolestia.join(', '),   // ← guarda "Ardor, Hinchazón"
+        'tipo': tiposMolestia.join(', '),
         'nivelDolor': nivelDolor,
         'nota': notaController.text.trim(),
         'fechaHora': FieldValue.serverTimestamp(),
@@ -481,8 +477,18 @@ class _TabMolestiaState extends State<_TabMolestias> {
     }
   }
 
-  Color _colorDolor(int n) { if (n <= 3) return Colors.green; if (n <= 6) return Colors.orange; return Colors.redAccent; }
-  String _etiquetaDolor(int n) { if (n == 0) return 'Sin seleccionar'; if (n <= 3) return 'Leve'; if (n <= 6) return 'Moderado'; return 'Intenso'; }
+  Color _colorDolor(int n) {
+    if (n <= 3) return Colors.green;
+    if (n <= 6) return Colors.orange;
+    return Colors.redAccent;
+  }
+
+  String _etiquetaDolor(int n) {
+    if (n == 0) return 'Sin seleccionar';
+    if (n <= 3) return 'Leve';
+    if (n <= 6) return 'Moderado';
+    return 'Intenso';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +516,6 @@ class _TabMolestiaState extends State<_TabMolestias> {
                 esSemanaActual: widget.esSemanaActual,
               ),
               const SizedBox(height: 20),
-
               if (!widget.soloLectura) ...[
                 Container(
                   padding: const EdgeInsets.all(18),
@@ -525,8 +530,6 @@ class _TabMolestiaState extends State<_TabMolestias> {
                       const Text('Registrar molestia en el pie',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: azulOscuro)),
                       const SizedBox(height: 16),
-
-                      // PIE AFECTADO
                       const Text('Pie afectado', style: TextStyle(fontSize: 13, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Wrap(
@@ -549,19 +552,15 @@ class _TabMolestiaState extends State<_TabMolestias> {
                         }).toList(),
                       ),
                       const SizedBox(height: 18),
-
-                      // TIPO DE MOLESTIA — multi-selección
                       const Text('Tipo de molestia (puedes elegir varias)',
                           style: TextStyle(fontSize: 13, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                        spacing: 8, runSpacing: 8,
                         children: opcionesTipo.map((opcion) {
                           final sel = tiposMolestia.contains(opcion);
                           return FilterChip(
-                            label: Text(opcion),
-                            selected: sel,
+                            label: Text(opcion), selected: sel,
                             onSelected: (_) {
                               setState(() {
                                 if (sel) { tiposMolestia.remove(opcion); }
@@ -582,8 +581,6 @@ class _TabMolestiaState extends State<_TabMolestias> {
                         }).toList(),
                       ),
                       const SizedBox(height: 18),
-
-                      // NIVEL DE DOLOR
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -616,14 +613,10 @@ class _TabMolestiaState extends State<_TabMolestias> {
                         ],
                       ),
                       const SizedBox(height: 18),
-
-                      // NOTA LIBRE
                       const Text('Descripción (opcional)', style: TextStyle(fontSize: 13, color: Colors.grey)),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: notaController,
-                        maxLines: 3,
-                        maxLength: 300,
+                        controller: notaController, maxLines: 3, maxLength: 300,
                         decoration: InputDecoration(
                           hintText: 'Describe cómo se siente o cualquier detalle que quieras agregar...',
                           hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
@@ -632,18 +625,14 @@ class _TabMolestiaState extends State<_TabMolestias> {
                       ),
                       const SizedBox(height: 6),
                       SizedBox(
-                        width: double.infinity,
-                        height: 48,
+                        width: double.infinity, height: 48,
                         child: ElevatedButton(
                           onPressed: guardando ? null : _guardarMolestia,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: azul,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: azul,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           child: guardando
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text('Guardar molestia',
-                                  style: TextStyle(color: Colors.white, fontSize: 16)),
+                              : const Text('Guardar molestia', style: TextStyle(color: Colors.white, fontSize: 16)),
                         ),
                       ),
                     ],
@@ -651,42 +640,31 @@ class _TabMolestiaState extends State<_TabMolestias> {
                 ),
                 const SizedBox(height: 24),
               ],
-
-              // HISTORIAL
               const Text('Molestias registradas esta semana',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: azulOscuro)),
               const SizedBox(height: 12),
               if (snapshot.connectionState == ConnectionState.waiting)
                 const Center(child: CircularProgressIndicator(color: azul))
               else if (registros.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      widget.soloLectura
-                          ? 'El paciente no registró molestias esta semana'
-                          : 'No hay molestias registradas esta semana',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                    ),
-                  ),
-                )
+                Center(child: Padding(padding: const EdgeInsets.all(20),
+                  child: Text(
+                    widget.soloLectura
+                        ? 'El paciente no registró molestias esta semana'
+                        : 'No hay molestias registradas esta semana',
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  )))
               else
                 ...registros.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final fecha = data['fechaHora'] != null
-                      ? (data['fechaHora'] as dynamic).toDate().toLocal()
-                      : DateTime.now();
+                      ? (data['fechaHora'] as dynamic).toDate().toLocal() : DateTime.now();
                   final nivel = data['nivelDolor'] ?? 0;
                   final color = _colorDolor(nivel);
                   final nota = (data['nota'] ?? '').toString().trim();
                   return _MolestiaCard(
-                    fecha: widget.fechaLegible(fecha),
-                    pie: data['pie'] ?? '',
-                    tipo: data['tipo'] ?? '',
-                    nivelDolor: nivel,
-                    etiquetaDolor: _etiquetaDolor(nivel),
-                    nota: nota,
-                    color: color,
+                    fecha: widget.fechaLegible(fecha), pie: data['pie'] ?? '',
+                    tipo: data['tipo'] ?? '', nivelDolor: nivel,
+                    etiquetaDolor: _etiquetaDolor(nivel), nota: nota, color: color,
                   );
                 }),
               const SizedBox(height: 30),
@@ -715,55 +693,34 @@ class _MolestiaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     const azulOscuro = Color(0xFF2C3E6B);
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 10, height: 60,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(fecha, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(tipo,
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: azulOscuro)),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text('Dolor $nivelDolor — $etiquetaDolor',
-                          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(pie, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                if (nota.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(nota, style: const TextStyle(fontSize: 12.5, color: Colors.black87, height: 1.4)),
-                ],
-              ],
+      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E0E0))),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(width: 10, height: 60,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5))),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(fecha, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 5),
+          Row(children: [
+            Expanded(child: Text(tipo,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: azulOscuro))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+              child: Text('Dolor $nivelDolor — $etiquetaDolor',
+                  style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
             ),
-          ),
-        ],
-      ),
+          ]),
+          const SizedBox(height: 4),
+          Text(pie, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          if (nota.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(nota, style: const TextStyle(fontSize: 12.5, color: Colors.black87, height: 1.4)),
+          ],
+        ])),
+      ]),
     );
   }
 }
@@ -779,8 +736,6 @@ class _TabGlucosa extends StatelessWidget {
   final bool guardando;
   final ValueChanged<String?> onMomentoChanged;
   final VoidCallback onGuardar;
-  final Color Function(double) colorGlucosa;
-  final String Function(double) mensajeGlucosa;
   final String Function(DateTime) fechaLegible;
   final DateTime inicioSemana, finSemana, inicioSemanaSiguiente;
   final String textoSemana;
@@ -790,8 +745,8 @@ class _TabGlucosa extends StatelessWidget {
   const _TabGlucosa({
     required this.uid, required this.soloLectura, required this.glucosaController,
     required this.momentoMedicion, required this.momentos, required this.guardando,
-    required this.onMomentoChanged, required this.onGuardar, required this.colorGlucosa,
-    required this.mensajeGlucosa, required this.fechaLegible, required this.inicioSemana,
+    required this.onMomentoChanged, required this.onGuardar,
+    required this.fechaLegible, required this.inicioSemana,
     required this.finSemana, required this.inicioSemanaSiguiente, required this.textoSemana,
     required this.onSemanaAnterior, required this.onSemanaSiguiente, required this.esSemanaActual,
   });
@@ -912,39 +867,16 @@ class _TabGlucosa extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Glucosa (mg/dL)', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   const SizedBox(height: 6),
-                  StatefulBuilder(builder: (context, setLocal) {
-                    return Column(children: [
-                      TextField(
-                        controller: glucosaController, keyboardType: TextInputType.number,
-                        onChanged: (_) => setLocal(() {}),
-                        decoration: InputDecoration(
-                          hintText: 'Ej. 120',
-                          prefixIcon: const Icon(Icons.bloodtype_outlined, color: azul),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                      Builder(builder: (_) {
-                        final val = double.tryParse(glucosaController.text.trim());
-                        if (val == null) return const SizedBox();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: colorGlucosa(val).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(children: [
-                              Icon(Icons.circle, color: colorGlucosa(val), size: 12),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(mensajeGlucosa(val),
-                                  style: TextStyle(fontSize: 13, color: colorGlucosa(val), fontWeight: FontWeight.w500))),
-                            ]),
-                          ),
-                        );
-                      }),
-                    ]);
-                  }),
+                  // Campo de glucosa SIN feedback de color (Opción A)
+                  TextField(
+                    controller: glucosaController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'Ej. 120',
+                      prefixIcon: const Icon(Icons.bloodtype_outlined, color: azul),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   const Text('Momento de medición', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   const SizedBox(height: 6),
@@ -955,7 +887,8 @@ class _TabGlucosa extends StatelessWidget {
                       prefixIcon: const Icon(Icons.access_time, color: azul),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    items: momentos.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 14)))).toList(),
+                    items: momentos.map((m) => DropdownMenuItem(value: m,
+                        child: Text(m, style: const TextStyle(fontSize: 14)))).toList(),
                     onChanged: onMomentoChanged,
                   ),
                   const SizedBox(height: 20),
@@ -1002,7 +935,8 @@ class _TabGlucosa extends StatelessWidget {
                     borderData: FlBorderData(show: false),
                     titlesData: FlTitlesData(
                       leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 36, interval: 50,
-                          getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)))),
+                          getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                              style: const TextStyle(fontSize: 10, color: Colors.grey)))),
                       bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -1016,18 +950,11 @@ class _TabGlucosa extends StatelessWidget {
                     lineBarsData: [LineChartBarData(
                       spots: datosGrafica, isCurved: true, color: azul, barWidth: 2.5,
                       dotData: FlDotData(show: true, getDotPainter: (spot, _, __, ___) {
-                        Color c = spot.y < 70 || spot.y > 180 ? Colors.redAccent : spot.y <= 130 ? Colors.green : Colors.orange;
-                        return FlDotCirclePainter(radius: 4, color: c, strokeWidth: 1.5, strokeColor: Colors.white);
+                        return FlDotCirclePainter(radius: 4, color: azul, strokeWidth: 1.5, strokeColor: Colors.white);
                       }),
                       belowBarData: BarAreaData(show: true, color: azul.withOpacity(0.06)),
                     )],
                   ))),
-                  const SizedBox(height: 12),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                    _Leyenda(color: Colors.green, texto: '70–130'),
-                    _Leyenda(color: Colors.orange, texto: '131–180'),
-                    _Leyenda(color: Colors.redAccent, texto: '<70 / >180'),
-                  ]),
                 ]),
               ),
               const SizedBox(height: 24),
@@ -1039,38 +966,37 @@ class _TabGlucosa extends StatelessWidget {
               const Center(child: CircularProgressIndicator(color: azul))
             else if (registros.isEmpty)
               Center(child: Padding(padding: const EdgeInsets.all(20),
-                child: Text(soloLectura ? 'El paciente no registró glucosa esta semana' : 'No hay registros de glucosa esta semana',
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14))))
+                child: Text(
+                  soloLectura ? 'El paciente no registró glucosa esta semana' : 'No hay registros de glucosa esta semana',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                )))
             else
+              // Historial SIN color ni badge de estado (Opción A)
               ...registros.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 final fecha = data['fechaHora'] != null
                     ? (data['fechaHora'] as dynamic).toDate().toLocal() : DateTime.now();
                 final valor = (data['valor'] ?? 0).toDouble();
                 final momento = data['momentoMedicion'] ?? '';
-                final color = _colorPorEstado(data['estado'] ?? '');
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE0E0E0))),
                   child: Row(children: [
                     Container(width: 10, height: 50,
-                        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5))),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6A93BE),
+                          borderRadius: BorderRadius.circular(5),
+                        )),
                     const SizedBox(width: 14),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(fechaLegible(fecha), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                       const SizedBox(height: 4),
                       Text('${valor.toStringAsFixed(0)} mg/dL',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E6B))),
                       if (momento.isNotEmpty)
                         Text(momento, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     ])),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Text(_etiquetaEstado(data['estado'] ?? ''),
-                          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-                    ),
                   ]),
                 );
               }),
@@ -1316,7 +1242,8 @@ class _TabPresion extends StatelessWidget {
                     borderData: FlBorderData(show: false),
                     titlesData: FlTitlesData(
                       leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 36, interval: 30,
-                          getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)))),
+                          getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                              style: const TextStyle(fontSize: 10, color: Colors.grey)))),
                       bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -1351,8 +1278,10 @@ class _TabPresion extends StatelessWidget {
               const Center(child: CircularProgressIndicator(color: azul))
             else if (registros.isEmpty)
               Center(child: Padding(padding: const EdgeInsets.all(20),
-                child: Text(soloLectura ? 'El paciente no registró presión esta semana' : 'No hay registros de presión esta semana',
-                    style: TextStyle(color: Colors.grey.shade400, fontSize: 14))))
+                child: Text(
+                  soloLectura ? 'El paciente no registró presión esta semana' : 'No hay registros de presión esta semana',
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                )))
             else
               ...registros.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
