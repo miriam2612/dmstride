@@ -98,18 +98,14 @@ class _NivelesScreenState extends State<NivelesScreen>
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  // Clasificación interna (se sigue usando para guardar en Firestore y para
+  // que AlertasService pueda evaluar al doctor en backend).
+  // Ya NO se muestra visualmente al usuario.
   String _nivelGlucosa(double v) {
     if (v < 70) return 'hipoglucemia';
     if (v <= 130) return 'controlada';
     if (v <= 180) return 'precaucion';
     return 'peligro';
-  }
-
-  Color _colorGlucosa(double v) {
-    if (v < 70) return Colors.redAccent;
-    if (v <= 130) return Colors.green;
-    if (v <= 180) return Colors.orange;
-    return Colors.redAccent;
   }
 
   int _nivelPresionInt(int s, int d) {
@@ -123,20 +119,6 @@ class _NivelesScreenState extends State<NivelesScreen>
     if (n == 0) return 'controlada';
     if (n == 1) return 'precaucion';
     return 'peligro';
-  }
-
-  String _mensajePresion(int s, int d) {
-    final n = _nivelPresionInt(s, d);
-    if (n == 0) return 'Presión bien controlada';
-    if (n == 1) return 'Presión levemente elevada — vigilar';
-    return 'Presión alta — consulta a tu médico';
-  }
-
-  Color _colorPresion(int s, int d) {
-    final n = _nivelPresionInt(s, d);
-    if (n == 0) return Colors.green;
-    if (n == 1) return Colors.orange;
-    return Colors.redAccent;
   }
 
   Future<void> guardarGlucosa() async {
@@ -309,8 +291,7 @@ class _NivelesScreenState extends State<NivelesScreen>
             uid: widget.uid, soloLectura: widget.soloLectura,
             sistolicaController: sistolicaController, diastolicaController: diastolicaController,
             guardando: guardandoPresion, onGuardar: guardarPresion,
-            colorPresion: _colorPresion, mensajePresion: _mensajePresion,
-            nivelPresionInt: _nivelPresionInt, fechaLegible: _fechaLegible,
+            fechaLegible: _fechaLegible,
             inicioSemana: inicioSemana, finSemana: finSemana,
             inicioSemanaSiguiente: inicioSemanaSiguiente,
             textoSemana: _textoSemana(semanaSeleccionada),
@@ -867,7 +848,6 @@ class _TabGlucosa extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Glucosa (mg/dL)', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   const SizedBox(height: 6),
-                  // Campo de glucosa SIN feedback de color (Opción A)
                   TextField(
                     controller: glucosaController,
                     keyboardType: TextInputType.number,
@@ -941,12 +921,7 @@ class _TabGlucosa extends StatelessWidget {
                       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
-                    rangeAnnotations: RangeAnnotations(horizontalRangeAnnotations: [
-                      HorizontalRangeAnnotation(y1: 50, y2: 70, color: Colors.red.withOpacity(0.08)),
-                      HorizontalRangeAnnotation(y1: 70, y2: 130, color: Colors.green.withOpacity(0.08)),
-                      HorizontalRangeAnnotation(y1: 130, y2: 180, color: Colors.orange.withOpacity(0.08)),
-                      HorizontalRangeAnnotation(y1: 180, y2: 250, color: Colors.red.withOpacity(0.08)),
-                    ]),
+                    // ── Franjas de color de fondo REMOVIDAS (estética neutral) ──
                     lineBarsData: [LineChartBarData(
                       spots: datosGrafica, isCurved: true, color: azul, barWidth: 2.5,
                       dotData: FlDotData(show: true, getDotPainter: (spot, _, __, ___) {
@@ -971,7 +946,6 @@ class _TabGlucosa extends StatelessWidget {
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 )))
             else
-              // Historial SIN color ni badge de estado (Opción A)
               ...registros.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 final fecha = data['fechaHora'] != null
@@ -1016,9 +990,6 @@ class _TabPresion extends StatelessWidget {
   final TextEditingController sistolicaController, diastolicaController;
   final bool guardando;
   final VoidCallback onGuardar;
-  final Color Function(int, int) colorPresion;
-  final String Function(int, int) mensajePresion;
-  final int Function(int, int) nivelPresionInt;
   final String Function(DateTime) fechaLegible;
   final DateTime inicioSemana, finSemana, inicioSemanaSiguiente;
   final String textoSemana;
@@ -1028,7 +999,6 @@ class _TabPresion extends StatelessWidget {
   const _TabPresion({
     required this.uid, required this.soloLectura, required this.sistolicaController,
     required this.diastolicaController, required this.guardando, required this.onGuardar,
-    required this.colorPresion, required this.mensajePresion, required this.nivelPresionInt,
     required this.fechaLegible, required this.inicioSemana, required this.finSemana,
     required this.inicioSemanaSiguiente, required this.textoSemana,
     required this.onSemanaAnterior, required this.onSemanaSiguiente, required this.esSemanaActual,
@@ -1163,41 +1133,21 @@ class _TabPresion extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Text('Presión arterial (mmHg)', style: TextStyle(fontSize: 13, color: Colors.grey)),
                   const SizedBox(height: 6),
-                  StatefulBuilder(builder: (context, setLocal) {
-                    final s = int.tryParse(sistolicaController.text.trim());
-                    final d = int.tryParse(diastolicaController.text.trim());
-                    return Column(children: [
-                      Row(children: [
-                        Expanded(child: TextField(
-                          controller: sistolicaController, keyboardType: TextInputType.number,
-                          onChanged: (_) => setLocal(() {}),
-                          decoration: InputDecoration(hintText: 'Sistólica',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                        )),
-                        const Padding(padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('/', style: TextStyle(fontSize: 22, color: Colors.grey))),
-                        Expanded(child: TextField(
-                          controller: diastolicaController, keyboardType: TextInputType.number,
-                          onChanged: (_) => setLocal(() {}),
-                          decoration: InputDecoration(hintText: 'Diastólica',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                        )),
-                      ]),
-                      if (s != null && d != null) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(color: colorPresion(s, d).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                          child: Row(children: [
-                            Icon(Icons.circle, color: colorPresion(s, d), size: 12),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(mensajePresion(s, d),
-                                style: TextStyle(fontSize: 13, color: colorPresion(s, d), fontWeight: FontWeight.w500))),
-                          ]),
-                        ),
-                      ],
-                    ]);
-                  }),
+                  // Input neutro (sin mensaje de color al escribir)
+                  Row(children: [
+                    Expanded(child: TextField(
+                      controller: sistolicaController, keyboardType: TextInputType.number,
+                      decoration: InputDecoration(hintText: 'Sistólica',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                    )),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Text('/', style: TextStyle(fontSize: 22, color: Colors.grey))),
+                    Expanded(child: TextField(
+                      controller: diastolicaController, keyboardType: TextInputType.number,
+                      decoration: InputDecoration(hintText: 'Diastólica',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                    )),
+                  ]),
                   const SizedBox(height: 20),
                   SizedBox(width: double.infinity, height: 48,
                     child: ElevatedButton(
@@ -1248,11 +1198,7 @@ class _TabPresion extends StatelessWidget {
                       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
-                    rangeAnnotations: RangeAnnotations(horizontalRangeAnnotations: [
-                      HorizontalRangeAnnotation(y1: 50, y2: 130, color: Colors.green.withOpacity(0.06)),
-                      HorizontalRangeAnnotation(y1: 130, y2: 140, color: Colors.orange.withOpacity(0.08)),
-                      HorizontalRangeAnnotation(y1: 140, y2: 180, color: Colors.red.withOpacity(0.08)),
-                    ]),
+                    // ── Franjas de color de fondo REMOVIDAS (estética neutral) ──
                     lineBarsData: [
                       LineChartBarData(spots: spotsSistolica, isCurved: true, color: const Color(0xFF6A93BE),
                           barWidth: 2.5, dotData: FlDotData(show: true),
@@ -1283,33 +1229,30 @@ class _TabPresion extends StatelessWidget {
                   style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 )))
             else
+              // ── Historial NEUTRO: sin color, sin badge ──
               ...registros.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 final fecha = data['fechaHora'] != null
                     ? (data['fechaHora'] as dynamic).toDate().toLocal() : DateTime.now();
                 final s = data['sistolica'] ?? 0;
                 final d = data['diastolica'] ?? 0;
-                final color = _colorPorEstado(data['estado'] ?? '');
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE0E0E0))),
                   child: Row(children: [
                     Container(width: 10, height: 50,
-                        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5))),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6A93BE),
+                          borderRadius: BorderRadius.circular(5),
+                        )),
                     const SizedBox(width: 14),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(fechaLegible(fecha), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                       const SizedBox(height: 4),
                       Text('$s / $d mmHg',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2C3E6B))),
                     ])),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Text(_etiquetaEstado(data['estado'] ?? ''),
-                          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
-                    ),
                   ]),
                 );
               }),
@@ -1322,22 +1265,6 @@ class _TabPresion extends StatelessWidget {
 }
 
 // ─── AUXILIARES ───────────────────────────────────────────────────────────────
-
-Color _colorPorEstado(String estado) {
-  if (estado == 'controlada') return Colors.green;
-  if (estado == 'precaucion') return Colors.orange;
-  if (estado == 'hipoglucemia') return Colors.redAccent;
-  if (estado == 'peligro') return Colors.redAccent;
-  return Colors.grey;
-}
-
-String _etiquetaEstado(String estado) {
-  if (estado == 'controlada') return 'Controlada';
-  if (estado == 'precaucion') return 'Precaución';
-  if (estado == 'hipoglucemia') return 'Hipoglucemia';
-  if (estado == 'peligro') return 'Peligro';
-  return 'Sin clasificar';
-}
 
 class _Leyenda extends StatelessWidget {
   final Color color;

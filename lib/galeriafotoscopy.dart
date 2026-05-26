@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'captura_pie_screen.dart';
-// ── NUEVOS imports para análisis con DM-Stride API ──
-import 'analisis_service.dart';
-import 'analisis_resultado_screen.dart';
 
 class GaleriaFotosScreen extends StatelessWidget {
   final String uid;
@@ -368,8 +365,6 @@ class _DetalleFotoScreenState extends State<DetalleFotoScreen> {
     text: widget.data['observaciones'] ?? '',
   );
   bool guardando = false;
-  // ── NUEVO: estado del análisis ──
-  bool analizando = false;
 
   @override
   void dispose() {
@@ -394,52 +389,6 @@ class _DetalleFotoScreenState extends State<DetalleFotoScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Observación guardada'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    }
-  }
-
-  // ── NUEVO: enviar imagen a la API DM-Stride y abrir pantalla de resultados ──
-  Future<void> _analizarImagen() async {
-    final base64 = widget.data['imagenBase64'];
-    if (base64 == null || base64.toString().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay imagen disponible para analizar.'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
-    setState(() => analizando = true);
-
-    try {
-      final resultado =
-          await AnalisisService.analizarImagen(base64.toString());
-      if (!mounted) return;
-      setState(() => analizando = false);
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AnalisisResultadoScreen(
-            imagenBase64: base64.toString(),
-            resultado: resultado,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => analizando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('No se pudo analizar la imagen. Intenta de nuevo.'),
-          backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -573,46 +522,6 @@ class _DetalleFotoScreenState extends State<DetalleFotoScreen> {
                               'Guardar observación',
                               style: TextStyle(color: Colors.white, fontSize: 15),
                             ),
-                    ),
-                  ),
-
-                  // ── NUEVO: botón "Analizar imagen" ──
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: OutlinedButton.icon(
-                      onPressed: analizando ? null : _analizarImagen,
-                      icon: analizando
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Color(0xFF6A93BE),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.auto_awesome_outlined,
-                              color: Color(0xFF6A93BE),
-                              size: 18,
-                            ),
-                      label: Text(
-                        analizando
-                            ? 'Analizando imagen...'
-                            : 'Analizar imagen',
-                        style: const TextStyle(
-                          color: Color(0xFF6A93BE),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF6A93BE)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                   ),
                 ],
